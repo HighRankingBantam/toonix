@@ -355,6 +355,12 @@
   # 1password-cli, (and chromium codecs). Allow them for this personal VM.
   nixpkgs.config.allowUnfree = true;
 
+  # Obsidian pins electron_40 (EOL 2026-06-30). Inert today, but once nixpkgs
+  # marks electron_40 insecure this whitelist keeps obsidian evaluating/building.
+  # (If a later nixpkgs bump changes the electron point-release, the build error
+  #  prints the exact string to use here.) Pin a flake.lock to control timing.
+  nixpkgs.config.permittedInsecurePackages = [ "electron-40.10.2" ];
+
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     auto-optimise-store = true;

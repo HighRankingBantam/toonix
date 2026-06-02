@@ -22,6 +22,10 @@ let
     installPhase = ''
       mkdir -p $out/share/plymouth/themes/omarchy
       cp -r $src/* $out/share/plymouth/themes/omarchy/
+      # Store sources are 0444; cp preserves that, so the copy is read-only and
+      # the substituteInPlace below would fail with "Permission denied". Make
+      # the tree writable first.
+      chmod -R u+w $out/share/plymouth/themes/omarchy
       substituteInPlace $out/share/plymouth/themes/omarchy/omarchy.plymouth \
         --replace-fail /usr/share/plymouth/themes/omarchy \
                        $out/share/plymouth/themes/omarchy
