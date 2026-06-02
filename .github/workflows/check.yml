@@ -23,17 +23,6 @@ jobs:
       - name: nix flake check (eval)
         run: nix flake check --no-build --print-build-logs
 
-      # Emit the resolved flake.lock so it can be committed to pin the repo to a
-      # known-good nixpkgs (no local Nix needed to generate it). Removed once the
-      # lock is committed.
-      - name: lock inputs
-        run: nix flake lock
-      - uses: actions/upload-artifact@v4
-        with:
-          name: flake-lock
-          path: flake.lock
-          if-no-files-found: error
-
   build:
     needs: eval
     runs-on: ubuntu-latest
