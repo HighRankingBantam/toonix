@@ -21,10 +21,13 @@
     DefaultLimitNOFILE = "65536:524288";
     DefaultTimeoutStopSec = "5s";
   };
-  systemd.user.settings.Manager = {
-    DefaultLimitNOFILE = "65536:524288";
-    DefaultTimeoutStopSec = "5s";
-  };
+  # The USER manager (user.conf) still uses the string extraConfig form on
+  # unstable — there is NO `systemd.user.settings` option (only the SYSTEM
+  # manager was refactored to `.settings`). CI confirmed this.
+  systemd.user.extraConfig = ''
+    DefaultLimitNOFILE=65536:524288
+    DefaultTimeoutStopSec=5s
+  '';
 
   # ── sudo: 10 password tries instead of 3 (increase-sudo-tries.sh) ───────────
   security.sudo.extraConfig = ''
