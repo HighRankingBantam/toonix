@@ -1,18 +1,43 @@
 name: flake check
 
-# Validates the flake on every push/PR. This is the automated version of the
-# static review done while authoring — it actually evaluates the whole NixOS
-# config (catching missing attrs, wrong option names, type errors) on real Nix.
+# Validates the flake on every push/PR. `eval` is the fast gate (catches bad
+# attrs/options/types on real nixos-unstable). `build` realises the whole system
+# closure (Thorium AppImage, Floorp, SDDM/Plymouth themes, desktop-file-validate
+# — everything short of actually booting).
 on:
   push:
   pull_request:
   workflow_dispatch:
 
 jobs:
-  check:
+  eval:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            extra-substituters = https://nix-community.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+      - name: nix flake check (eval)
+        run: nix flake check --no-build --print-build-logs
+
+  build:
+    needs: eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # A full Hyprland-desktop closure (Floorp, Thorium, LibreOffice, kdenlive,
+      # Qt, GNOME bits) is large; reclaim ~20 GB the runner ships preinstalled.
+      - name: free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                      /usr/local/share/boost /usr/local/.ghcup /usr/lib/jvm \
+                      "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}" || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
 
       - uses: cachix/install-nix-action@v30
         with:
@@ -21,14 +46,7 @@ jobs:
             extra-substituters = https://nix-community.cachix.org
             extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
 
-      # Eval-only: evaluates nixosConfigurations + the `checks` output (the full
-      # system closure) without realising multi-GB builds. Fast, and catches the
-      # class of errors that block a rebuild (bad attrs/options/types).
-      - name: nix flake check (eval)
-        run: nix flake check --no-build --print-build-logs
-
-      # Optional full build of the system closure (heavier — pulls the Thorium
-      # AppImage + builds everything). Enable by removing `if: false`.
       - name: build system closure (full)
-        if: false
-        run: nix build .#nixosConfigurations.toonix.config.system.build.toplevel --print-build-logs
+        run: |
+          nix build --print-build-logs \
+            '.#nixosConfigurations.toonix.config.system.build.toplevel'
