@@ -12,3 +12,7 @@ result-*
 
 # Home-Manager activation backups (created on the live system, not source)
 *.hm-bak
+
+# Local QEMU test artifacts (vm/run-toonix-vm.sh downloads/creates these)
+*.iso
+vm/OVMF_VARS.fd

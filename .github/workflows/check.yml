@@ -6,6 +6,8 @@ name: flake check
 # — everything short of actually booting).
 on:
   push:
+    # Don't burn a full build on docs/scripts-only changes (no effect on the closure).
+    paths-ignore: [ '**.md', 'vm/**', '.gitignore' ]
   pull_request:
   workflow_dispatch:
 
