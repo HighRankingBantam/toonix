@@ -78,7 +78,7 @@
   boot.initrd.kernelModules = [ "virtio_gpu" ];
 
   # ── Networking ────────────────────────────────────────────────────────────
-  networking.hostName = "nixos-vm";
+  networking.hostName = "toonix";
   networking.networkmanager.enable = true;
   networking.firewall.enable = true;
 

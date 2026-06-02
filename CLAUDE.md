@@ -1,4 +1,4 @@
-# CLAUDE.md — agent context for the NixOS Omarchy port
+# CLAUDE.md — agent context for Toonix (the NixOS Omarchy port)
 
 > Engineering context for working on this repo. User-facing docs are
 > `README.md` (architecture) and `INSTALL.md` (QEMU install). This file is the
@@ -7,7 +7,7 @@
 
 ## What this is
 
-A NixOS flake (output `nixos-vm`) that recreates the user's **Omarchy v3.8.2**
+A NixOS flake (output `toonix`) that recreates the user's **Omarchy v3.8.2**
 Hyprland desktop on NixOS, to run in a **QEMU VM**. Goal: bring the user's
 existing config along so they don't reconfigure on install. Claude Code is
 preinstalled (original user request). Working dir of the broader session is
@@ -152,7 +152,7 @@ Migrations are also pre-marked done so nothing replays them.
 ## File map
 
 ```text
-flake.nix                 nixosConfigurations.nixos-vm + Home-Manager; checks (nix flake check) + formatter (nix fmt)
+flake.nix                 nixosConfigurations.toonix + Home-Manager; checks (nix flake check) + formatter (nix fmt)
 justfile                  `just` helpers (switch/test/build/check/vm/update/gc/fmt); .github/workflows/check.yml = CI
 configuration.nix         system: GRUB(UEFI), btrfs, zram, snapper, SDDM+Hyprland/UWSM, audio, fonts, packages
                           imports → modules/system-tweaks.nix + modules/omarchy-branding.nix
@@ -189,8 +189,8 @@ build the closure); `nix fmt` to format; `just` lists helper recipes
 In the VM (full install): per `INSTALL.md` — partition `/dev/vda`, `nixos-generate-config --root /mnt`,
 drop this repo at `/mnt/etc/nixos` **keeping the generated
 hardware-configuration.nix**, then
-`nixos-install --flake /mnt/etc/nixos#nixos-vm`. Rebuild after edits:
-`sudo nixos-rebuild switch --flake /etc/nixos#nixos-vm`. First boot: pick
+`nixos-install --flake /mnt/etc/nixos#toonix`. Rebuild after edits:
+`sudo nixos-rebuild switch --flake /etc/nixos#toonix`. First boot: pick
 **"Hyprland (UWSM)"** in SDDM, log in `bantam` / `changeme`.
 
 ## Open / future work

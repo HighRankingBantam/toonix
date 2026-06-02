@@ -31,4 +31,4 @@ jobs:
       # AppImage + builds everything). Enable by removing `if: false`.
       - name: build system closure (full)
         if: false
-        run: nix build .#nixosConfigurations.nixos-vm.config.system.build.toplevel --print-build-logs
+        run: nix build .#nixosConfigurations.toonix.config.system.build.toplevel --print-build-logs

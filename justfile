@@ -2,7 +2,7 @@
 # (Install `just` via `nix shell nixpkgs#just` or it's in the system once built.)
 
 flake := "/etc/nixos"
-host  := "nixos-vm"
+host  := "toonix"
 
 # List recipes
 default:
@@ -26,7 +26,7 @@ check:
     nix flake check --print-build-logs
 
 # Boot this config in a throwaway QEMU VM straight from the flake (great for
-# testing without a full install; creates a ./nixos-vm.qcow2 disk image).
+# testing without a full install; creates a ./toonix.qcow2 disk image).
 vm:
     nixos-rebuild build-vm --flake {{flake}}#{{host}}
     @echo "Run ./result/bin/run-{{host}}-vm to start the VM."

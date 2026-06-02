@@ -1,7 +1,7 @@
 # Installing into a QEMU VM
 
 Step-by-step install of this flake (Omarchy v3.8.2 on NixOS) into a QEMU/KVM
-guest. The flake output is **`nixos-vm`**; the login user is **`bantam`** with
+guest. The flake output is **`toonix`**; the login user is **`bantam`** with
 initial password **`changeme`**.
 
 > Assumes a **UEFI** VM (QEMU with OVMF firmware) and a single virtio disk
@@ -120,7 +120,7 @@ cp /tmp/hardware-configuration.nix /mnt/etc/nixos/hardware-configuration.nix
 ## 5. Install
 
 ```sh
-nixos-install --flake /mnt/etc/nixos#nixos-vm
+nixos-install --flake /mnt/etc/nixos#toonix
 ```
 
 The build is large (full Hyprland desktop + apps), so this takes a while. The
@@ -155,7 +155,7 @@ Remove the ISO from the VM so it boots from disk.
 Subsequent changes are applied by rebuilding against the same flake output:
 
 ```sh
-sudo nixos-rebuild switch --flake /etc/nixos#nixos-vm
+sudo nixos-rebuild switch --flake /etc/nixos#toonix
 ```
 
 See [README.md](./README.md) for day-to-day usage — theme switching, which

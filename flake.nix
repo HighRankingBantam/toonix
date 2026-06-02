@@ -15,7 +15,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      nixosConfigurations.nixos-vm = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.toonix = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
           ./configuration.nix
@@ -33,8 +33,8 @@
       # `nix flake check` builds the full system closure — i.e. a real
       # eval+build of the whole config (the validation I can't run in this
       # authoring environment; run it in CI or on any machine with Nix).
-      checks.${system}.nixos-vm =
-        self.nixosConfigurations.nixos-vm.config.system.build.toplevel;
+      checks.${system}.toonix =
+        self.nixosConfigurations.toonix.config.system.build.toplevel;
 
       # `nix fmt` formats all .nix files (RFC 166 style).
       formatter.${system} = pkgs.nixfmt-rfc-style;

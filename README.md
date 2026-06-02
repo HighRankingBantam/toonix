@@ -1,15 +1,15 @@
-# Omarchy on NixOS (QEMU VM)
+# Toonix
 
-A NixOS flake that recreates [Omarchy](https://omarchy.org) — DHH's opinionated
-Arch + Hyprland setup — **v3.8.2**, running declaratively on NixOS inside a
-**QEMU virtual machine**.
+**Toonix** is [Omarchy](https://omarchy.org) — DHH's opinionated Arch + Hyprland
+setup, **v3.8.2** — recreated declaratively as a NixOS flake, for a **QEMU VM**.
+(The flake output and hostname are `toonix`.)
 
 - **Distro recreated:** Omarchy v3.8.2 (the full upstream tree is bundled in `omarchy/`)
 - **Base OS:** NixOS (`nixos-unstable`), managed by a flake + Home-Manager
 - **Target:** a QEMU/KVM guest (boots on virtio-gpu with software rendering — no GPU passthrough required)
 - **Extras:** **Claude Code** preinstalled; active theme is **ristretto**;
   **Floorp** (instead of Firefox) and **Thorium** (instead of Chromium) browsers
-- **Flake output:** `nixos-vm` (i.e. `.#nixos-vm`)
+- **Flake output:** `toonix` (i.e. `.#toonix`)
 - **User:** `bantam`
 
 See [INSTALL.md](./INSTALL.md) for the step-by-step VM install.
@@ -127,7 +127,7 @@ integration is wired the Nix way (Omarchy's init expects `/usr/share/fzf/*`).
 
 ```text
 nixos/
-├── flake.nix                       # Flake: nixosConfigurations.nixos-vm + Home-Manager; `checks` (nix flake check) + `formatter` (nix fmt)
+├── flake.nix                       # Flake: nixosConfigurations.toonix + Home-Manager; `checks` (nix flake check) + `formatter` (nix fmt)
 ├── configuration.nix               # NixOS system: GRUB, btrfs, zram, snapper, SDDM+Hyprland/UWSM, audio, fonts, packages
 │                                   #   imports → system-tweaks.nix + omarchy-branding.nix
 ├── hardware-configuration.nix      # Btrfs-subvolume TEMPLATE (+ opt-in LUKS) — replace w/ nixos-generate-config output at install
@@ -230,11 +230,11 @@ Floorp needs none of this — `pkgs.floorp-bin` is in nixpkgs.
 ### Rebuild after editing the config
 
 ```sh
-sudo nixos-rebuild switch --flake /etc/nixos#nixos-vm
+sudo nixos-rebuild switch --flake /etc/nixos#toonix
 ```
 
 (Assumes you placed this repo at `/etc/nixos`; otherwise point `--flake` at
-wherever the flake lives, keeping the `#nixos-vm` output name.)
+wherever the flake lives, keeping the `#toonix` output name.)
 
 ### Validating before you build
 
