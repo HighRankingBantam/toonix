@@ -23,12 +23,14 @@ then boots QEMU (UEFI). Tunables: `RAM=8192 CPUS=4 DISK_SIZE=40G ./vm/run-toonix
 
 ```sh
 mkdir -p /f && mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
-bash /f/vm/install-in-vm.sh           # add a disk arg only if not /dev/vda
+TOONIX_UNATTENDED=1 bash /f/vm/install-in-vm.sh     # add a disk arg only if not /dev/vda
 ```
-It partitions the disk (Btrfs subvolumes matching `hardware-configuration.nix`),
-then `nixos-install --flake /f#toonix` — pulling most of the closure from the
-binary cache and building the custom bits (Thorium, themes). Expect ~15–40 min.
-You'll set a root password at the end; user **`bantam`** is `changeme`.
+That's **fully unattended** — no prompts. It partitions the disk (Btrfs subvolumes
+matching `hardware-configuration.nix`), then `nixos-install --flake /f#toonix`,
+pulling most of the closure from the binary cache and building the custom bits
+(Thorium, themes). Expect ~15–40 min, then it powers down on its own readiness.
+Root is left locked; you log in as **`bantam`** / **`changeme`** (wheel sudo).
+(Drop `TOONIX_UNATTENDED=1` if you'd rather confirm the disk-erase first.)
 
 ## 3. Boot the installed system
 

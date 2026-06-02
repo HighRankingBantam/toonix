@@ -27,8 +27,11 @@ export NIX_CONFIG="experimental-features = nix-command flakes"
 echo
 echo "  ⚠  This will ERASE $DISK and install Toonix (flake $FLAKE_DIR#$FLAKE_ATTR)."
 lsblk "$DISK" 2>/dev/null || true
-read -rp "  Type ERASE to continue: " ok
-[ "$ok" = "ERASE" ] || die "aborted."
+# Set TOONIX_UNATTENDED=1 to skip this confirm (e.g. for a fully hands-off run).
+if [ "${TOONIX_UNATTENDED:-0}" != "1" ]; then
+  read -rp "  Type ERASE to continue: " ok
+  [ "$ok" = "ERASE" ] || die "aborted."
+fi
 
 echo "==> partitioning $DISK (GPT: 2GiB ESP + rest Btrfs)"
 parted -s "$DISK" -- mklabel gpt
@@ -60,11 +63,12 @@ mount -o "subvol=@log,$o"       "$ROOT" /mnt/var/log
 mount -o "subvol=@snapshots,$o" "$ROOT" /mnt/.snapshots
 mount "$ESP" /mnt/boot
 
-echo "==> nixos-install --flake $FLAKE_DIR#$FLAKE_ATTR  (this pulls from cache + builds the custom bits; 15–40 min)"
+echo "==> nixos-install --flake $FLAKE_DIR#$FLAKE_ATTR  (pulls from cache + builds custom bits; 15–40 min)"
 # The committed hardware-configuration.nix already matches this by-label Btrfs
-# layout + virtio modules, so it's used as-is. You'll be prompted for a root
-# password at the end; the `bantam` user's initial password is `changeme`.
-nixos-install --flake "$FLAKE_DIR#$FLAKE_ATTR" --no-channel-copy
+# layout + virtio modules, so it's used as-is. --no-root-passwd leaves root
+# locked (no interactive prompt) — you log in as `bantam` / `changeme` (wheel
+# sudo). This makes the whole install non-interactive when TOONIX_UNATTENDED=1.
+nixos-install --flake "$FLAKE_DIR#$FLAKE_ATTR" --no-channel-copy --no-root-passwd
 
 cat <<'EOF'
 
