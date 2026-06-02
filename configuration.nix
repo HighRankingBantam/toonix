@@ -275,7 +275,8 @@
     pavucontrol wireplumber
     networkmanagerapplet
     bluez bluez-tools
-    fcitx5 fcitx5-gtk fcitx5-qt
+    # (fcitx5 + its gtk/qt addons come from i18n.inputMethod.fcitx5 below —
+    #  `fcitx5-qt` isn't a top-level attr, and listing them here is redundant.)
     fzf jq gum bash-completion
     xmlstarlet socat
     impala iwd

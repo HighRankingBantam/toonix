@@ -46,10 +46,11 @@
   # Git: identity + Omarchy's shipped git config (omarchy/config/git/config).
   programs.git = {
     enable = true;
-    userName  = "bantam";
-    userEmail = "nla.0105@proton.me";
-    aliases = { co = "checkout"; br = "branch"; ci = "commit"; st = "status"; };
-    extraConfig = {
+    # home-manager renamed userName/userEmail/aliases/extraConfig → settings.*
+    # (freeform git config) on current unstable; CI warnings confirmed the paths.
+    settings = {
+      user = { name = "bantam"; email = "nla.0105@proton.me"; };
+      alias = { co = "checkout"; br = "branch"; ci = "commit"; st = "status"; };
       init.defaultBranch = "master";          # Omarchy's default
       pull.rebase = true;
       push.autoSetupRemote = true;
