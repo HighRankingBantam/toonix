@@ -166,7 +166,7 @@
     packages = with pkgs; [
       noto-fonts
       noto-fonts-cjk-sans
-      noto-fonts-emoji
+      noto-fonts-color-emoji   # renamed from noto-fonts-emoji on unstable
       nerd-fonts.jetbrains-mono
       nerd-fonts.fira-code
       font-awesome
