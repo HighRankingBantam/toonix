@@ -14,14 +14,17 @@
 
   # ── systemd: bigger fd limit + fast shutdown ────────────────────────────────
   # increase-fd-limit.sh (DefaultLimitNOFILE) + fast-shutdown.sh (5s stop).
-  systemd.extraConfig = ''
-    DefaultLimitNOFILE=65536:524288
-    DefaultTimeoutStopSec=5s
-  '';
-  systemd.user.extraConfig = ''
-    DefaultLimitNOFILE=65536:524288
-    DefaultTimeoutStopSec=5s
-  '';
+  # NOTE: systemd.extraConfig / systemd.user.extraConfig were REMOVED on
+  # nixos-unstable — use the structured systemd.settings.Manager /
+  # systemd.user.settings.Manager (the [Manager] section of system/user.conf).
+  systemd.settings.Manager = {
+    DefaultLimitNOFILE = "65536:524288";
+    DefaultTimeoutStopSec = "5s";
+  };
+  systemd.user.settings.Manager = {
+    DefaultLimitNOFILE = "65536:524288";
+    DefaultTimeoutStopSec = "5s";
+  };
 
   # ── sudo: 10 password tries instead of 3 (increase-sudo-tries.sh) ───────────
   security.sudo.extraConfig = ''
