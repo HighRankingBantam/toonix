@@ -1,0 +1,18 @@
+# Changes require a restart to take effect.
+
+# Ensure Omarchy bins are in the path
+export OMARCHY_PATH=$HOME/.local/share/omarchy
+export PATH=$OMARCHY_PATH/bin:$PATH
+
+# NixOS: shadow Arch-only omarchy commands (omarchy update / refresh-* / pkg-*)
+# with the no-op stubs from modules/omarchy-nixos-compat.nix. Must come AFTER the
+# line above so the override dir wins for GUI/menu-launched commands too (not
+# just interactive shells, which shell.nix handles). Harmless if the dir is empty.
+[ -d "$HOME/.local/share/omarchy-nixos-overrides" ] && \
+  export PATH="$HOME/.local/share/omarchy-nixos-overrides:$PATH"
+
+# Set default terminal and editor
+source ~/.config/uwsm/default
+
+# Activate mise if present on the system
+omarchy-cmd-present mise && eval "$(mise activate bash --shims)"

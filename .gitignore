@@ -1,0 +1,14 @@
+# Nix build outputs
+result
+result-*
+*.qcow2
+
+# direnv
+.direnv/
+
+# editor/OS cruft
+*.swp
+.DS_Store
+
+# Home-Manager activation backups (created on the live system, not source)
+*.hm-bak

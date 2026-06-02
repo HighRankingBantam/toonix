@@ -1,0 +1,205 @@
+#!/bin/bash
+# Syncs the active Zen Browser theme to match the current Omarchy theme.
+# Called by omarchy-theme-set with the theme name (e.g. "ristretto", "catppuccin").
+
+THEME_NAME="$1"
+MAP_FILE="$HOME/.config/omarchy/zen-theme-map.conf"
+ZEN_CONFIG="$HOME/.config/zen"
+ZEN_CHROME_STORE="$HOME/.config/omarchy/zen-chrome"
+CATPPUCCIN_SOURCE="$HOME/.local/share/catppuccin-zen"
+CATPPUCCIN_CONF="$HOME/.config/omarchy/catppuccin-zen.conf"
+
+# Find the default Zen Browser profile path from profiles.ini
+get_zen_profile() {
+  local profiles_ini="$ZEN_CONFIG/profiles.ini"
+  [[ -f "$profiles_ini" ]] || return 1
+
+  # Look for the Install section which points to the locked default profile
+  local rel_path
+  rel_path=$(awk '/^\[Install/{found=1; next} found && /^Default=/{print; exit}' "$profiles_ini" | cut -d= -f2-)
+
+  if [[ -n "$rel_path" ]]; then
+    echo "$ZEN_CONFIG/$rel_path"
+    return 0
+  fi
+
+  # Fall back to the profile with Default=1
+  rel_path=$(awk '/^\[Profile/{section=1} section && /^Default=1/{found=1} section && found && /^Path=/{print; exit}' "$profiles_ini" | cut -d= -f2-)
+  if [[ -n "$rel_path" ]]; then
+    echo "$ZEN_CONFIG/$rel_path"
+    return 0
+  fi
+
+  return 1
+}
+
+THEME_NAME_LOWER="${THEME_NAME,,}"
+ZEN_ACTIVE_THEME_FILE="$HOME/.config/omarchy/zen-active-theme"
+SOCKET_PATH="/tmp/catppuccin-zen.sock"
+
+# Send a JSON payload to the native host socket (no-op if socket not present)
+send_zen_socket() {
+  local payload="$1"
+  if [[ -S "$SOCKET_PATH" ]]; then
+    python3 -c "
+import socket, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+try:
+    s.connect(sys.argv[1])
+    s.sendall(sys.argv[2].encode())
+    s.close()
+except Exception as e:
+    sys.stderr.write(f'omarchy-zen socket: {e}\n')
+" "$SOCKET_PATH" "$payload" 2>/dev/null
+    return 0   # socket was present
+  fi
+  return 1   # socket not present (Zen not running / extension not loaded)
+}
+
+ZEN_PROFILE=$(get_zen_profile)
+if [[ -z "$ZEN_PROFILE" || ! -d "$ZEN_PROFILE" ]]; then
+  notify-send "Zen Theme Sync" "Could not find Zen Browser profile." --urgency=low 2>/dev/null
+  exit 1
+fi
+
+PREFS_JS="$ZEN_PROFILE/prefs.js"
+USER_JS="$ZEN_PROFILE/user.js"
+CHROME_DIR="$ZEN_PROFILE/chrome"
+
+# --- userChrome.css switcher ---
+apply_userchrome() {
+  local src_chrome="$1"   # path to userChrome.css to apply
+  local src_content="$2"  # path to userContent.css (optional, pass "" to skip)
+  local src_logo="$3"     # path to logo svg (optional, pass "" to skip)
+
+  [[ -d "$CHROME_DIR" ]] || mkdir -p "$CHROME_DIR"
+
+  cp "$src_chrome" "$CHROME_DIR/userChrome.css"
+
+  if [[ -n "$src_content" && -f "$src_content" ]]; then
+    cp "$src_content" "$CHROME_DIR/userContent.css"
+  elif [[ -f "$CHROME_DIR/userContent.css" ]]; then
+    rm "$CHROME_DIR/userContent.css"
+  fi
+
+  if [[ -n "$src_logo" && -f "$src_logo" ]]; then
+    cp "$src_logo" "$CHROME_DIR/zen-logo.svg"
+  fi
+}
+
+# --- Zen extension theme switcher (for extension-based themes) ---
+set_pref_in_file() {
+  local file="$1"
+  local theme_id="$2"
+  local pref_line="user_pref(\"extensions.activeThemeID\", \"$theme_id\");"
+
+  if [[ ! -f "$file" ]]; then
+    echo "$pref_line" > "$file"
+  elif grep -q "extensions.activeThemeID" "$file"; then
+    sed -i "s|user_pref(\"extensions.activeThemeID\".*|$pref_line|" "$file"
+  else
+    echo "$pref_line" >> "$file"
+  fi
+}
+
+# --- Handle catppuccin (browser.theme.update via native messaging extension) ---
+if [[ "$THEME_NAME_LOWER" == "catppuccin" || "$THEME_NAME_LOWER" == catppuccin-* ]]; then
+  # Load flavor/accent from config (defaults: Mocha/Mauve)
+  CATPPUCCIN_FLAVOR="Mocha"
+  CATPPUCCIN_ACCENT="Mauve"
+  if [[ -f "$CATPPUCCIN_CONF" ]]; then
+    source "$CATPPUCCIN_CONF"
+  fi
+
+  # Allow catppuccin-mocha, catppuccin-latte, etc. to override flavor
+  case "$THEME_NAME_LOWER" in
+    catppuccin-mocha)     CATPPUCCIN_FLAVOR="Mocha" ;;
+    catppuccin-macchiato) CATPPUCCIN_FLAVOR="Macchiato" ;;
+    catppuccin-frappe)    CATPPUCCIN_FLAVOR="Frappe" ;;
+    catppuccin-latte)     CATPPUCCIN_FLAVOR="Latte" ;;
+  esac
+
+  # Persist flavor/accent so the extension picks it up on next Zen startup
+  cat > "$CATPPUCCIN_CONF" <<EOF
+# Catppuccin for Zen Browser configuration
+# Source: https://github.com/catppuccin/zen-browser
+#
+# Flavor options: Mocha, Macchiato, Frappe, Latte
+# Accent options: Blue, Flamingo, Green, Lavender, Maroon, Mauve, Peach, Pink, Red, Rosewater, Sapphire, Sky, Teal, Yellow
+#
+CATPPUCCIN_FLAVOR=$CATPPUCCIN_FLAVOR
+CATPPUCCIN_ACCENT=$CATPPUCCIN_ACCENT
+EOF
+  echo "catppuccin" > "$ZEN_ACTIVE_THEME_FILE"
+
+  PAYLOAD="{\"theme\": \"catppuccin\", \"flavor\": \"$CATPPUCCIN_FLAVOR\", \"accent\": \"$CATPPUCCIN_ACCENT\"}"
+  if send_zen_socket "$PAYLOAD"; then
+    notify-send "Zen Theme Sync" "Catppuccin $CATPPUCCIN_FLAVOR/$CATPPUCCIN_ACCENT applied." --urgency=low 2>/dev/null
+  else
+    notify-send "Zen Theme Sync" "Catppuccin $CATPPUCCIN_FLAVOR/$CATPPUCCIN_ACCENT saved — will apply when Zen Browser is open." --urgency=low 2>/dev/null
+  fi
+
+  exit 0
+fi
+
+# --- Handle ristretto (native messaging extension) ---
+if [[ "$THEME_NAME_LOWER" == "ristretto" ]]; then
+  echo "ristretto" > "$ZEN_ACTIVE_THEME_FILE"
+
+  if send_zen_socket '{"theme": "ristretto"}'; then
+    notify-send "Zen Theme Sync" "Ristretto applied." --urgency=low 2>/dev/null
+  else
+    # Socket not available — apply userChrome and extension theme directly
+    if [[ -f "$ZEN_CHROME_STORE/ristretto/userChrome.css" ]]; then
+      apply_userchrome \
+        "$ZEN_CHROME_STORE/ristretto/userChrome.css" \
+        "$ZEN_CHROME_STORE/ristretto/userContent.css" \
+        ""
+    fi
+
+    RISTRETTO_ID=$(grep -v "^#" "$MAP_FILE" 2>/dev/null | grep "^ristretto=" | cut -d= -f2-)
+    if [[ -n "$RISTRETTO_ID" ]]; then
+      set_pref_in_file "$PREFS_JS" "$RISTRETTO_ID"
+      if [[ -f "$USER_JS" ]] && grep -q "extensions.activeThemeID" "$USER_JS"; then
+        sed -i "/extensions.activeThemeID/d" "$USER_JS"
+      fi
+    fi
+
+    notify-send "Zen Theme Sync" "Ristretto applied — open Zen Browser to see it." --urgency=low 2>/dev/null
+  fi
+
+  exit 0
+fi
+
+# --- Handle themes with stored userChrome.css in zen-chrome store ---
+if [[ -f "$ZEN_CHROME_STORE/$THEME_NAME_LOWER/userChrome.css" ]]; then
+  apply_userchrome \
+    "$ZEN_CHROME_STORE/$THEME_NAME_LOWER/userChrome.css" \
+    "$ZEN_CHROME_STORE/$THEME_NAME_LOWER/userContent.css" \
+    ""
+
+  if pgrep -x zen-browser > /dev/null; then
+    notify-send "Zen Theme Sync" "$THEME_NAME userChrome applied — restart Zen Browser to see it." --urgency=low 2>/dev/null
+  fi
+fi
+
+# --- Handle extension-based themes via zen-theme-map.conf ---
+THEME_ID=$(grep -v "^#" "$MAP_FILE" 2>/dev/null | grep "^${THEME_NAME_LOWER}=" | cut -d= -f2-)
+
+if [[ -z "$THEME_ID" ]]; then
+  # No extension mapping for this theme — nothing more to do
+  exit 0
+fi
+
+if pgrep -x zen-browser > /dev/null; then
+  # Browser is running — write to user.js so it applies on next restart
+  set_pref_in_file "$USER_JS" "$THEME_ID"
+  notify-send "Zen Theme Sync" "Restart Zen Browser to apply the $THEME_NAME extension theme." --urgency=low 2>/dev/null
+else
+  # Browser is not running — update prefs.js directly and clear any user.js override
+  set_pref_in_file "$PREFS_JS" "$THEME_ID"
+
+  if [[ -f "$USER_JS" ]] && grep -q "extensions.activeThemeID" "$USER_JS"; then
+    sed -i "/extensions.activeThemeID/d" "$USER_JS"
+  fi
+fi
