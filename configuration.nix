@@ -282,7 +282,7 @@
     impala iwd
     inxi mise
     libsecret gnome-keyring
-    mlocate man-db inetutils whois
+    man-db inetutils whois   # locate/updatedb come from services.locate (plocate); mlocate dropped (collided)
     luarocks
 
     # Terminals

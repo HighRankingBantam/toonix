@@ -13,6 +13,7 @@ in
   # at $HOME (i.e. disables them).
   xdg.userDirs = {
     enable = true;
+    setSessionVariables = true;   # export XDG_*_DIR (Omarchy uses them); also silences HM's default-change warning
     createDirectories = true;
     download    = "${home}/Downloads";
     pictures    = "${home}/Pictures";

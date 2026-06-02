@@ -37,12 +37,12 @@
         self.nixosConfigurations.toonix.config.system.build.toplevel;
 
       # `nix fmt` formats all .nix files (RFC 166 style).
-      formatter.${system} = pkgs.nixfmt-rfc-style;
+      formatter.${system} = pkgs.nixfmt;
 
       # `nix develop` — tooling for hacking on this flake (formatter, Nix LSP,
       # linters, the `just` runner). Not needed to build/install the config.
       devShells.${system}.default = pkgs.mkShellNoCC {
-        packages = with pkgs; [ just nixfmt-rfc-style nixd statix deadnix ];
+        packages = with pkgs; [ just nixfmt nixd statix deadnix ];
       };
     };
 }
