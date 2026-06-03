@@ -80,7 +80,10 @@
   # ── Networking ────────────────────────────────────────────────────────────
   networking = {
     hostName = "toonix";
-    networkmanager.enable = true;
+    networkmanager = {
+      enable = true;
+      wifi.backend = "iwd";
+    };
     firewall = {
       enable = true;
       allowedTCPPorts = [ 53317 ]; # LocalSend
