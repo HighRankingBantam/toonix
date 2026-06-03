@@ -241,6 +241,7 @@
   services.printing = {
     enable = true;
     browsed.enable = true;
+    cups-pdf.enable = true;
     browsedConf = ''
       CreateRemotePrinters Yes
     '';
@@ -270,6 +271,7 @@
   };
   programs.nm-applet.enable = true;
   programs.dconf.enable = true;
+  programs.system-config-printer.enable = true;
 
   # Enable fcitx5 input method (Omarchy ships fcitx5 by default)
   i18n.inputMethod = {
@@ -321,7 +323,7 @@
     impala iwd
     inxi mise
     libsecret gnome-keyring
-    man-db inetutils whois   # locate/updatedb come from services.locate (plocate); mlocate dropped (collided)
+    man-db less inetutils whois   # locate/updatedb come from services.locate (plocate); mlocate dropped (collided)
     luarocks
 
     # Terminals
@@ -335,12 +337,15 @@
     bat eza fd ripgrep dust zoxide starship
     btop htop fastfetch tldr
     lazygit lazydocker
+    docker-compose docker-buildx
     gh
     file unzip
+    dosfstools exfatprogs
     imagemagick ffmpeg
     tesseract
     yt-dlp
     woff2
+    libqalculate tree-sitter
 
     # Editors / dev (Omarchy includes these via packaging/base)
     neovim
@@ -353,7 +358,7 @@
     # Thorium replaces Chromium (both installed via home.packages there).
     nautilus
     nautilus-python          # loads Omarchy's right-click extensions (localsend/transcode)
-    gvfs ffmpegthumbnailer
+    gvfs ffmpegthumbnailer webp-pixbuf-loader
     gnome-calculator gnome-themes-extra gnome-disk-utility yaru-theme
     libreoffice
     obsidian

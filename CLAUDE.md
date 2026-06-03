@@ -56,7 +56,9 @@ all of that with permission errors). Instead:
 - `configuration.nix` — also carries Omarchy's networking/runtime system bits:
   systemd-resolved stub DNS, Docker bridge DNS listener, socket-activated Docker
   with bounded JSON logs, LocalSend's TCP/UDP firewall allowance, and printer
-  discovery via Avahi + cups-browsed.
+  discovery via Avahi + cups-browsed + CUPS-PDF/system-config-printer. It also
+  contains the main package parity set from `omarchy/install/omarchy-base.packages`
+  (Docker compose/buildx, filesystem tools, qalc/tree-sitter/WebP pixbuf, etc.).
 - `modules/omarchy-home-extras.nix` — declarative ports of home-level install,
   first-run, and login bits: mimetypes/XDG dirs/XCompose/WirePlumber, GNOME
   dconf defaults, Elephant user service, passwordless Default_keyring, ~/Work,
