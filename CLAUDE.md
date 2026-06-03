@@ -53,6 +53,10 @@ all of that with permission errors). Instead:
   (ristretto), the theme library, mako/btop theme symlinks, pre-marks all 325
   migrations, creates `~/.local/state/omarchy/toggles/hypr`. Runtime state is
   seeded **only-if-absent** so `nixos-rebuild` never clobbers an in-VM theme switch.
+- `modules/omarchy-home-extras.nix` — declarative ports of home-level install,
+  first-run, and login bits: mimetypes/XDG dirs/XCompose/WirePlumber, GNOME
+  dconf defaults, Elephant user service, passwordless Default_keyring, ~/Work,
+  Nautilus extensions.
 - `modules/omarchy-nixos-compat.nix` — stub scripts that no-op the Arch-only
   commands; PATH-win applied in `shell.nix` (must run after Omarchy's rc).
 - `modules/shell.nix` — sources Omarchy's bash framework; fzf integration; the
@@ -99,8 +103,9 @@ re-investigate these as "missing" — they're deliberate.
    (the override-dir line appended after Omarchy's) handles GUI/menu-launched
    commands. A plain `home.sessionPath` loses to both. Don't remove either.
 6. **`elephant` is required** for the Walker launcher (SUPER+SPACE) to return
-   results; it's `pkgs.elephant` (packaged). `omarchy-launch-walker` starts it
-   on demand, so just being on PATH is enough.
+   results; it's `pkgs.elephant` (packaged). It is enabled as a Home-Manager
+   user service so `omarchy-restart-walker` restarts it; `omarchy-launch-walker`
+   still starts it lazily if the service is not running yet.
 7. **`nixpkgs.config.allowUnfree = true`** is required (claude-code, obsidian,
    spotify, _1password-cli).
 8. **Activation step-1 skip-list = `omarchy|git|chromium|hypr|uwsm|walker|alacritty|systemd`.**

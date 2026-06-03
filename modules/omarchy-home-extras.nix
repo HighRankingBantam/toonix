@@ -1,8 +1,10 @@
-# Home-level Omarchy features ported from install/config/*.sh and default/*:
-# mimetype defaults, XDG user-dirs, ~/.XCompose, WirePlumber drop-ins, ~/Work.
+# Home-level Omarchy features ported from install/config/*.sh,
+# install/first-run/*.sh, install/login/*.sh, and default/*:
+# mimetype defaults, XDG user-dirs, ~/.XCompose, GNOME/dconf defaults,
+# WirePlumber drop-ins, Elephant, keyring seed, ~/Work.
 # (Browser-default mimetypes + default-web-browser are set in the browser
 #  module, since they depend on the chosen browser's .desktop name.)
-{ config, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   home = config.home.homeDirectory;
@@ -80,6 +82,64 @@ in
     ../omarchy/default/wireplumber/wireplumber.conf.d/alsa-soft-mixer.conf;
   xdg.configFile."wireplumber/wireplumber.conf.d/51-bluetooth-a2dp-autoconnect.conf".source =
     ../omarchy/default/wireplumber/wireplumber.conf.d/bluetooth-a2dp-autoconnect.conf;
+
+  # ── GNOME/dconf defaults (first-run/gnome-theme.sh + gtk-primary-paste.sh) ──
+  # Omarchy sets GTK dark mode and the current theme's Yaru icon color at first
+  # run. Seed those declaratively; theme switches can still mutate them later via
+  # omarchy-theme-set-gnome.
+  dconf.settings."org/gnome/desktop/interface" = {
+    gtk-theme = "Adwaita-dark";
+    color-scheme = "prefer-dark";
+    icon-theme = "Yaru-yellow"; # ristretto's icons.theme
+    gtk-enable-primary-paste = true;
+  };
+
+  # ── Elephant data provider (first-run/elephant.sh) ─────────────────────────
+  # `omarchy-launch-walker` can start Elephant lazily, but upstream also enables
+  # elephant.service. Keeping the service enabled makes `omarchy-restart-walker`
+  # restart Elephant correctly instead of skipping it.
+  systemd.user.services.elephant = {
+    Unit = {
+      Description = "Elephant data provider";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.elephant}/bin/elephant";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # ── Passwordless default keyring (login/default-keyring.sh) ────────────────
+  # Preserve any user-created keyrings; only seed Omarchy's default if absent.
+  home.activation.omarchyDefaultKeyring =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        keyring_dir="$HOME/.local/share/keyrings"
+        keyring_file="$keyring_dir/Default_keyring.keyring"
+        default_file="$keyring_dir/default"
+
+        mkdir -p "$keyring_dir"
+        if [ ! -e "$keyring_file" ]; then
+          cat > "$keyring_file" <<EOF
+[keyring]
+display-name=Default keyring
+ctime=$(${pkgs.coreutils}/bin/date +%s)
+mtime=0
+lock-on-idle=false
+lock-after=false
+EOF
+          chmod 600 "$keyring_file"
+        fi
+
+        if [ ! -e "$default_file" ]; then
+          printf 'Default_keyring\n' > "$default_file"
+          chmod 644 "$default_file"
+        fi
+        chmod 700 "$keyring_dir"
+      fi
+    '';
 
   # ── ~/Work mise setup (mise-work.sh) ────────────────────────────────────────
   # Adds ./bin to PATH for anything under ~/Work; `mise trust ~/Work` once.
