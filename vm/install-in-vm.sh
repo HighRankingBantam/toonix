@@ -5,7 +5,8 @@
 # Assumes you booted via ../run-toonix-vm.sh (UEFI + virtio disk /dev/vda + the
 # repo shared as 9p tag `toonixflake`). It partitions EXACTLY the Btrfs-subvolume
 # layout the committed hardware-configuration.nix expects (labels BOOT + nixos),
-# so no nixos-generate-config is needed for this known QEMU target.
+# copies this flake into /mnt/etc/nixos, then installs from that persisted copy.
+# No nixos-generate-config is needed for this known QEMU target.
 #
 #   mkdir -p /f && mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
 #   bash /f/vm/install-in-vm.sh                 # installs to /dev/vda
@@ -14,7 +15,8 @@ set -euo pipefail
 
 DISK="${1:-/dev/vda}"
 FLAKE_DIR="${FLAKE_DIR:-/f}"          # where the 9p share is mounted
-FLAKE_ATTR="toonix"
+FLAKE_ATTR="${FLAKE_ATTR:-toonix}"
+TARGET_FLAKE_DIR="/mnt/etc/nixos"
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -63,12 +65,26 @@ mount -o "subvol=@log,$o"       "$ROOT" /mnt/var/log
 mount -o "subvol=@snapshots,$o" "$ROOT" /mnt/.snapshots
 mount "$ESP" /mnt/boot
 
-echo "==> nixos-install --flake $FLAKE_DIR#$FLAKE_ATTR  (pulls from cache + builds custom bits; 15–40 min)"
+echo "==> copying Toonix flake to $TARGET_FLAKE_DIR"
+mkdir -p "$TARGET_FLAKE_DIR"
+tar -C "$FLAKE_DIR" \
+  --exclude='./.git' \
+  --exclude='./result' \
+  --exclude='./result-*' \
+  --exclude='./vm/*.iso' \
+  --exclude='./vm/*.iso.tmp' \
+  --exclude='./vm/*.qcow2' \
+  --exclude='./vm/*.fd' \
+  --exclude='./vm/.iso-boot' \
+  -cf - . | tar -C "$TARGET_FLAKE_DIR" -xf -
+
+echo "==> nixos-install --flake $TARGET_FLAKE_DIR#$FLAKE_ATTR  (pulls from cache + builds custom bits; 15-40 min)"
 # The committed hardware-configuration.nix already matches this by-label Btrfs
-# layout + virtio modules, so it's used as-is. --no-root-passwd leaves root
-# locked (no interactive prompt) — you log in as `bantam` / `changeme` (wheel
+# layout + virtio modules, so it's used as-is. The flake is installed from
+# /mnt/etc/nixos so future rebuilds work after the 9p share disappears.
+# --no-root-passwd leaves root locked (no interactive prompt) — you log in as `bantam` / `changeme` (wheel
 # sudo). This makes the whole install non-interactive when TOONIX_UNATTENDED=1.
-nixos-install --flake "$FLAKE_DIR#$FLAKE_ATTR" --no-channel-copy --no-root-passwd
+nixos-install --flake "$TARGET_FLAKE_DIR#$FLAKE_ATTR" --no-channel-copy --no-root-passwd
 
 cat <<'EOF'
 
@@ -76,5 +92,7 @@ cat <<'EOF'
      poweroff
   then on the host re-run ./vm/run-toonix-vm.sh (pick the disk in the boot menu,
   or delete vm/nixos-minimal.iso so it boots straight from disk).
+  The flake lives at /etc/nixos in the installed VM, so rebuilds can use:
+     sudo nixos-rebuild switch --flake /etc/nixos#toonix
   Log in at SDDM ("Hyprland (UWSM)") as  bantam / changeme.
 EOF

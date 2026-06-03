@@ -17,16 +17,23 @@ sudo pacman -S qemu-desktop edk2-ovmf
 ./vm/run-toonix-vm.sh
 ```
 First run downloads the NixOS minimal ISO and creates `vm/toonix.qcow2` (40 GB),
-then boots QEMU (UEFI). Tunables: `RAM=8192 CPUS=4 DISK_SIZE=40G ./vm/run-toonix-vm.sh`.
-
-## 2. Install Toonix (inside the VM's root shell)
+then boots QEMU (UEFI). Tunables:
 
 ```sh
-mkdir -p /f && mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
-TOONIX_UNATTENDED=1 bash /f/vm/install-in-vm.sh     # add a disk arg only if not /dev/vda
+RAM=8192 CPUS=4 DISK_SIZE=40G ./vm/run-toonix-vm.sh
+HEADLESS=1 ./vm/run-toonix-vm.sh       # serial installer in this terminal
+BOOT=disk ./vm/run-toonix-vm.sh        # boot the installed disk, no ISO
+```
+
+## 2. Install Toonix (inside the VM's installer shell)
+
+```sh
+sudo mkdir -p /f && sudo mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
+sudo TOONIX_UNATTENDED=1 bash /f/vm/install-in-vm.sh     # add a disk arg only if not /dev/vda
 ```
 That's **fully unattended** — no prompts. It partitions the disk (Btrfs subvolumes
-matching `hardware-configuration.nix`), then `nixos-install --flake /f#toonix`,
+matching `hardware-configuration.nix`), copies this repo to `/mnt/etc/nixos`
+without local VM artifacts, then `nixos-install --flake /mnt/etc/nixos#toonix`,
 pulling most of the closure from the binary cache and building the custom bits
 (Thorium, themes). Expect ~15–40 min, then it powers down on its own readiness.
 Root is left locked; you log in as **`bantam`** / **`changeme`** (wheel sudo).
@@ -36,12 +43,12 @@ Root is left locked; you log in as **`bantam`** / **`changeme`** (wheel sudo).
 
 ```sh
 poweroff          # in the VM
-rm vm/nixos-minimal.iso   # optional: so it boots straight from disk
-./vm/run-toonix-vm.sh     # boot again; log in at SDDM → "Hyprland (UWSM)"
+BOOT=disk ./vm/run-toonix-vm.sh     # log in at SDDM → "Hyprland (UWSM)"
 ```
 
 ## Notes
-- `-cpu host` is used, so the SSE3-pinned Thorium runs fine (and faster).
+- `-cpu host` is used when KVM is available; otherwise the script uses
+  `-cpu max` for TCG/software emulation. You can override with `CPU=...`.
 - Software rendering (llvmpipe) drives the desktop — no GPU passthrough needed;
   `WLR_RENDERER_ALLOW_SOFTWARE` is already set in the config.
 - This is the **manual/local** equivalent of the headless cloud-box deploy; CI

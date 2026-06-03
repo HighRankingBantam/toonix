@@ -12,7 +12,8 @@ setup, **v3.8.2** — recreated declaratively as a NixOS flake, for a **QEMU VM*
 - **Flake output:** `toonix` (i.e. `.#toonix`)
 - **User:** `bantam`
 
-See [INSTALL.md](./INSTALL.md) for the step-by-step VM install.
+For the quick local QEMU path, start with [vm/README.md](./vm/README.md).
+For the fully manual VM install, see [INSTALL.md](./INSTALL.md).
 
 ---
 

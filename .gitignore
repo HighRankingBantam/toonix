@@ -16,3 +16,4 @@ result-*
 # Local QEMU test artifacts (vm/run-toonix-vm.sh downloads/creates these)
 *.iso
 vm/OVMF_VARS.fd
+vm/.iso-boot/
