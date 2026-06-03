@@ -37,6 +37,14 @@
   # ── Wi-Fi powersave off (wifi-powersave-rules.sh — off while on AC) ─────────
   networking.networkmanager.wifi.powersave = false;
 
+  # ── Power button belongs to Omarchy's power menu (ignore-power-button.sh) ──
+  services.logind.settings.Login.HandlePowerKey = "ignore";
+
+  # ── Keep flaky USB peripherals awake (hardware/usb-autosuspend.sh) ─────────
+  boot.extraModprobeConfig = ''
+    options usbcore autosuspend=-1
+  '';
+
   # ── locate / updatedb (localdb.sh + plocate-ac-only.sh) ─────────────────────
   # Omarchy uses plocate; updatedb runs on AC only there (irrelevant in a VM).
   services.locate = {
