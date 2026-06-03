@@ -61,8 +61,8 @@ all of that with permission errors). Instead:
   (Docker compose/buildx, filesystem tools, qalc/tree-sitter/WebP pixbuf, etc.).
 - `modules/omarchy-home-extras.nix` — declarative ports of home-level install,
   first-run, and login bits: mimetypes/XDG dirs/XCompose/WirePlumber, GNOME
-  dconf defaults, Elephant user service, passwordless Default_keyring, ~/Work,
-  Nautilus extensions.
+  dconf defaults, Elephant user service, passwordless Default_keyring, Omarchy
+  assistant skill symlinks, ~/Work, Nautilus extensions.
 - `modules/omarchy-nixos-compat.nix` — stub scripts that no-op the Arch-only
   commands; PATH-win applied in `shell.nix` (must run after Omarchy's rc).
 - `modules/shell.nix` — sources Omarchy's bash framework; fzf integration; the
@@ -79,7 +79,7 @@ autostart + elephant menus (the in-launcher Theme/Background/Unlocks menus).
 **Bundled-tree coverage (verified):** all 28 `omarchy/default/` subdirs are
 wired, sourced via the runtime symlink, or skipped with reason. Justified skips
 (can't/shouldn't port): `limine` (GRUB instead), `pacman` (Arch N/A),
-`voxtype`/`pi`/`omarchy-skill` (tools not in nixpkgs), `wayland-sessions`
+`voxtype`/`pi` (tools not in nixpkgs), `wayland-sessions`
 (withUWSM), `snapper/root` (NixOS generations handle system rollback). Don't
 re-investigate these as "missing" — they're deliberate.
 

@@ -1,7 +1,7 @@
 # Home-level Omarchy features ported from install/config/*.sh,
 # install/first-run/*.sh, install/login/*.sh, and default/*:
 # mimetype defaults, XDG user-dirs, ~/.XCompose, GNOME/dconf defaults,
-# WirePlumber drop-ins, Elephant, keyring seed, ~/Work.
+# WirePlumber drop-ins, Elephant, keyring seed, assistant skill symlinks, ~/Work.
 # (Browser-default mimetypes + default-web-browser are set in the browser
 #  module, since they depend on the chosen browser's .desktop name.)
 { config, pkgs, lib, ... }:
@@ -138,6 +138,27 @@ EOF
           chmod 644 "$default_file"
         fi
         chmod 700 "$keyring_dir"
+      fi
+    '';
+
+  # ── Omarchy assistant skill (config/omarchy-ai-skill.sh) ───────────────────
+  # Upstream makes the Omarchy desktop skill available to common local agents on
+  # first install. Keep these as runtime symlinks to the canonical Omarchy tree.
+  home.activation.omarchyAISkill =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        skill_src="$HOME/.local/share/omarchy/default/omarchy-skill"
+
+        mkdir -p \
+          "$HOME/.agents/skills" \
+          "$HOME/.claude/skills" \
+          "$HOME/.codex/skills" \
+          "$HOME/.pi/agent/skills"
+
+        ln -sfn "$skill_src" "$HOME/.agents/skills/omarchy"
+        ln -sfn "$skill_src" "$HOME/.claude/skills/omarchy"
+        ln -sfn "$skill_src" "$HOME/.codex/skills/omarchy"
+        ln -sfn "$skill_src" "$HOME/.pi/agent/skills/omarchy"
       fi
     '';
 
