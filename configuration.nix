@@ -109,6 +109,7 @@
 
   # Redistributable firmware (wifi/gpu/microcode) — a complete daily-driver OS.
   hardware.enableRedistributableFirmware = true;
+  hardware.wirelessRegulatoryDatabase = true;
 
   # ── Btrfs snapshots (Snapper, mirrors Omarchy) ─────────────────────────────
   # `home` = hourly timeline of user data. `root` = Omarchy's pre-update recovery

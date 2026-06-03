@@ -167,7 +167,7 @@ configuration.nix         system: GRUB(UEFI), btrfs, zram, snapper, SDDM+Hyprlan
                           resolved + Docker bridge DNS + LocalSend firewall + cups-browsed printer discovery; imports → modules/system-tweaks.nix + modules/omarchy-branding.nix
 hardware-configuration.nix Btrfs-subvolume TEMPLATE (+opt-in LUKS) — replace w/ nixos-generate-config at install
 home.nix                  HM entry: imports 6 home modules, git, session env, services.swayosd
-modules/ (system)         system-tweaks.nix (install/config/* tweaks: sysctl/fd/sudo/wifi/logind/usb/fuse) · omarchy-branding.nix (SDDM+Plymouth themes)
+modules/ (system)         system-tweaks.nix (install/config/* tweaks: sysctl/fd/sudo/wifi/regdom/logind/usb/fuse) · omarchy-branding.nix (SDDM+Plymouth themes)
 modules/ (home-manager)   omarchy-runtime · omarchy-home · omarchy-home-extras (mime/xdg/xcompose/wireplumber)
                           · omarchy-browsers (floorp-bin + Thorium AppImage) · omarchy-nixos-compat · shell
 omarchy/                  bundled upstream v3.8.2 (read-only) — bin/ config/ default/ themes/ migrations/

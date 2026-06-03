@@ -40,9 +40,13 @@
   # ── Power button belongs to Omarchy's power menu (ignore-power-button.sh) ──
   services.logind.settings.Login.HandlePowerKey = "ignore";
 
-  # ── Keep flaky USB peripherals awake (hardware/usb-autosuspend.sh) ─────────
+  # ── Hardware modprobe tweaks ───────────────────────────────────────────────
   boot.extraModprobeConfig = ''
+    # hardware/usb-autosuspend.sh — keep flaky USB peripherals awake.
     options usbcore autosuspend=-1
+
+    # hardware/set-wireless-regdom.sh — America/Chicago resolves to US.
+    options cfg80211 ieee80211_regdom=US
   '';
 
   # ── locate / updatedb (localdb.sh + plocate-ac-only.sh) ─────────────────────
