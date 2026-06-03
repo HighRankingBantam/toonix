@@ -78,9 +78,23 @@
   boot.initrd.kernelModules = [ "virtio_gpu" ];
 
   # ── Networking ────────────────────────────────────────────────────────────
-  networking.hostName = "toonix";
-  networking.networkmanager.enable = true;
-  networking.firewall.enable = true;
+  networking = {
+    hostName = "toonix";
+    networkmanager.enable = true;
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [ 53317 ]; # LocalSend
+      allowedUDPPorts = [ 53317 ];
+      interfaces.docker0.allowedUDPPorts = [ 53 ];
+    };
+  };
+
+  # Omarchy points /etc/resolv.conf at systemd-resolved's stub and exposes a
+  # DNS listener on Docker's bridge so containers can use the host resolver.
+  services.resolved = {
+    enable = true;
+    settings.Resolve.DNSStubListenerExtra = "172.17.0.1";
+  };
 
   # ── Locale / Time ─────────────────────────────────────────────────────────
   time.timeZone = "America/Chicago";
@@ -228,7 +242,19 @@
   # NOTE: swayosd-server runs as a Home-Manager user service (services.swayosd in
   # home.nix) — there is no NixOS `services.swayosd` option. This replaces
   # Omarchy's user unit, which hardcodes /usr/bin/swayosd-server.
-  virtualisation.docker.enable = true;
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = false; # socket-activated, matching Omarchy's Docker setup
+    daemon.settings = {
+      "log-driver" = "json-file";
+      "log-opts" = {
+        "max-size" = "10m";
+        "max-file" = "5";
+      };
+      dns = [ "172.17.0.1" ];
+      bip = "172.17.0.1/16";
+    };
+  };
   programs.nm-applet.enable = true;
   programs.dconf.enable = true;
 
