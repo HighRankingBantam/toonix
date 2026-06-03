@@ -55,7 +55,8 @@ all of that with permission errors). Instead:
   seeded **only-if-absent** so `nixos-rebuild` never clobbers an in-VM theme switch.
 - `configuration.nix` — also carries Omarchy's networking/runtime system bits:
   systemd-resolved stub DNS, Docker bridge DNS listener, socket-activated Docker
-  with bounded JSON logs, and LocalSend's TCP/UDP firewall allowance.
+  with bounded JSON logs, LocalSend's TCP/UDP firewall allowance, and printer
+  discovery via Avahi + cups-browsed.
 - `modules/omarchy-home-extras.nix` — declarative ports of home-level install,
   first-run, and login bits: mimetypes/XDG dirs/XCompose/WirePlumber, GNOME
   dconf defaults, Elephant user service, passwordless Default_keyring, ~/Work,
@@ -163,7 +164,7 @@ Migrations are also pre-marked done so nothing replays them.
 flake.nix                 nixosConfigurations.toonix + Home-Manager; checks (nix flake check) + formatter (nix fmt)
 justfile                  `just` helpers (switch/test/build/check/vm/update/gc/fmt); .github/workflows/check.yml = CI
 configuration.nix         system: GRUB(UEFI), btrfs, zram, snapper, SDDM+Hyprland/UWSM, audio, fonts, packages
-                          resolved + Docker bridge DNS + LocalSend firewall; imports → modules/system-tweaks.nix + modules/omarchy-branding.nix
+                          resolved + Docker bridge DNS + LocalSend firewall + cups-browsed printer discovery; imports → modules/system-tweaks.nix + modules/omarchy-branding.nix
 hardware-configuration.nix Btrfs-subvolume TEMPLATE (+opt-in LUKS) — replace w/ nixos-generate-config at install
 home.nix                  HM entry: imports 6 home modules, git, session env, services.swayosd
 modules/ (system)         system-tweaks.nix (install/config/* tweaks: sysctl/fd/sudo/wifi/logind/usb/fuse) · omarchy-branding.nix (SDDM+Plymouth themes)

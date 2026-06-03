@@ -89,11 +89,14 @@
     };
   };
 
-  # Omarchy points /etc/resolv.conf at systemd-resolved's stub and exposes a
-  # DNS listener on Docker's bridge so containers can use the host resolver.
+  # Omarchy points /etc/resolv.conf at systemd-resolved's stub, exposes a DNS
+  # listener on Docker's bridge, and leaves mDNS to Avahi for printer discovery.
   services.resolved = {
     enable = true;
-    settings.Resolve.DNSStubListenerExtra = "172.17.0.1";
+    settings.Resolve = {
+      DNSStubListenerExtra = "172.17.0.1";
+      MulticastDNS = "no";
+    };
   };
 
   # ── Locale / Time ─────────────────────────────────────────────────────────
@@ -231,7 +234,13 @@
   services.spice-vdagentd.enable = true;     # SPICE clipboard + auto-resize
   services.qemuGuest.enable = true;          # QEMU/KVM guest integration
   services.openssh.enable = true;
-  services.printing.enable = true;
+  services.printing = {
+    enable = true;
+    browsed.enable = true;
+    browsedConf = ''
+      CreateRemotePrinters Yes
+    '';
+  };
   services.avahi = {
     enable = true;
     nssmdns4 = true;        # replaces the nss-mdns package (mDNS .local resolution)
