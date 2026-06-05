@@ -1,9 +1,9 @@
 # Running Toonix in a local QEMU VM (no Nix on the host)
 
-The Nix work happens **inside** the VM (off the NixOS installer ISO), and this
-repo is shared into the guest over **9p** — so you don't need Nix installed on
-your machine, and your **private repo never leaves it** (no GitHub token in the
-guest).
+The Nix work happens **inside** the VM (off the NixOS installer ISO), so you
+don't need Nix installed on your machine. The normal path downloads Toonix from
+GitHub with a single `curl` command. The host repo is still shared into the
+guest over **9p** for local fallback testing.
 
 ## 0. One-time host prereqs (Arch/Omarchy)
 
@@ -25,19 +25,37 @@ HEADLESS=1 ./vm/run-toonix-vm.sh       # serial installer in this terminal
 BOOT=disk ./vm/run-toonix-vm.sh        # boot the installed disk, no ISO
 ```
 
-## 2. Install Toonix (inside the VM's installer shell)
+## 2. Install Toonix from the internet (inside the VM's installer shell)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo TOONIX_UNATTENDED=1 bash
+```
+
+That downloads the current `main` branch, partitions the disk (Btrfs subvolumes
+matching `hardware-configuration.nix`), copies the fetched flake to
+`/mnt/etc/nixos`, then runs `nixos-install --flake /mnt/etc/nixos#toonix`,
+pulling most of the closure from the binary cache and building the custom bits
+(Thorium, themes). Expect ~15–40 min.
+
+Root is left locked; you log in as **`bantam`** / **`changeme`** (wheel sudo).
+Drop `TOONIX_UNATTENDED=1` if you'd rather confirm the disk erase first.
+
+To install to a disk other than `/dev/vda`, pass it after `bash`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo TOONIX_UNATTENDED=1 bash -s -- /dev/sda
+```
+
+This requires the GitHub repo/archive to be reachable from the installer VM. To
+test another branch or archive, set `TOONIX_BRANCH=...` or
+`TOONIX_ARCHIVE_URL=...` before `bash`.
+
+### Local fallback without internet
 
 ```sh
 sudo mkdir -p /f && sudo mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
 sudo TOONIX_UNATTENDED=1 bash /f/vm/install-in-vm.sh     # add a disk arg only if not /dev/vda
 ```
-That's **fully unattended** — no prompts. It partitions the disk (Btrfs subvolumes
-matching `hardware-configuration.nix`), copies this repo to `/mnt/etc/nixos`
-without local VM artifacts, then `nixos-install --flake /mnt/etc/nixos#toonix`,
-pulling most of the closure from the binary cache and building the custom bits
-(Thorium, themes). Expect ~15–40 min, then it powers down on its own readiness.
-Root is left locked; you log in as **`bantam`** / **`changeme`** (wheel sudo).
-(Drop `TOONIX_UNATTENDED=1` if you'd rather confirm the disk-erase first.)
 
 ## 3. Boot the installed system
 

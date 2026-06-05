@@ -4,10 +4,10 @@
 # What it does:
 #   • downloads the NixOS minimal installer ISO (once),
 #   • creates a blank qcow2 disk (once),
-#   • boots QEMU (UEFI/OVMF) with that disk + the ISO + THIS repo shared into the
-#     guest over 9p (mount tag `toonixflake`) so the flake is available inside the
-#     VM with no GitHub auth,
-#   • prints the one command to run inside the VM to install Toonix.
+#   • boots QEMU (UEFI/OVMF) with that disk + the ISO,
+#   • prints a curl command to run inside the VM to install Toonix from GitHub.
+#     The repo is also shared over 9p as tag `toonixflake` for local fallback
+#     testing when you do not want to fetch from the internet.
 #
 # Prereqs (Arch/Omarchy):  sudo pacman -S qemu-desktop edk2-ovmf
 #
@@ -154,28 +154,32 @@ else
   QEMU: accel=$ACCEL cpu=$CPU ram=${RAM}M cpus=$CPUS
   When the NixOS installer shell appears in this terminal, run:
 
+      curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo TOONIX_UNATTENDED=1 bash
+
+  The installer downloads Toonix, copies it to /mnt/etc/nixos before
+  nixos-install, so the installed VM can later rebuild from /etc/nixos#toonix.
+
+  Local fallback without internet:
+
       sudo mkdir -p /f && sudo mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
       sudo TOONIX_UNATTENDED=1 bash /f/vm/install-in-vm.sh
-
-  The installer copies the flake to /mnt/etc/nixos before nixos-install, so the
-  installed VM can later rebuild from /etc/nixos#toonix.
 
 EOF
   else
     BOOT_ARGS=(-cdrom "$ISO" -boot menu=on)
     cat <<EOF
 
-  Booting Toonix VM (UEFI). The repo is shared into the guest over 9p.
+  Booting Toonix VM (UEFI).
   QEMU: accel=$ACCEL cpu=$CPU ram=${RAM}M cpus=$CPUS
-  Inside the VM installer shell, run ONE line:
+  Inside the VM installer shell, run:
+
+      curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | \\
+        sudo TOONIX_UNATTENDED=1 bash
+
+  Local fallback without internet, using the repo shared over 9p:
 
       sudo mkdir -p /f && sudo mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f && \\
         sudo TOONIX_UNATTENDED=1 bash /f/vm/install-in-vm.sh
-
-  …or simply:
-
-      sudo mkdir -p /f && sudo mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
-      sudo bash /f/vm/install-in-vm.sh
 
   After it finishes: poweroff, delete (or ignore) the ISO, re-run this script to
   boot the installed system. Login: bantam / changeme.

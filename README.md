@@ -12,7 +12,13 @@ setup, **v3.8.2** — recreated declaratively as a NixOS flake, for a **QEMU VM*
 - **Flake output:** `toonix` (i.e. `.#toonix`)
 - **User:** `bantam`
 
-For the quick local QEMU path, start with [vm/README.md](./vm/README.md).
+For the quick local QEMU path, start with [vm/README.md](./vm/README.md). Inside
+the NixOS installer VM, the internet install path is:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo bash
+```
+
 For the fully manual VM install, see [INSTALL.md](./INSTALL.md).
 
 ---

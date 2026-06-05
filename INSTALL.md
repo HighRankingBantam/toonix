@@ -33,9 +33,40 @@ Confirm you booted UEFI (this dir must exist):
 ls /sys/firmware/efi/efivars
 ```
 
+## 2. Fast path: install with curl
+
+From the NixOS installer shell, run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo bash
+```
+
+For a fully unattended install to `/dev/vda`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo TOONIX_UNATTENDED=1 bash
+```
+
+To target another disk:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/HighRankingBantam/toonix/main/install.sh | sudo TOONIX_UNATTENDED=1 bash -s -- /dev/sda
+```
+
+The script downloads Toonix from GitHub, partitions the target disk, creates the
+Btrfs subvolumes, copies the flake to `/mnt/etc/nixos`, and runs
+`nixos-install --flake /mnt/etc/nixos#toonix`.
+
+This requires the GitHub repo/archive to be reachable from the installer VM. To
+test another branch or archive, set `TOONIX_BRANCH=...` or
+`TOONIX_ARCHIVE_URL=...` before `bash`.
+
+Skip to [First boot](#7-first-boot) after it finishes. The manual steps below
+are only needed if you want to do the install by hand.
+
 ---
 
-## 2. Partition `/dev/vda` (GPT: 2 GiB ESP + rest Btrfs)
+## 3. Manual path: partition `/dev/vda` (GPT: 2 GiB ESP + rest Btrfs)
 
 ```sh
 parted /dev/vda -- mklabel gpt
@@ -53,10 +84,10 @@ This gives you `/dev/vda1` (ESP) and `/dev/vda2` (Btrfs root).
 
 ---
 
-## 3. Make filesystems, create Btrfs subvolumes, and mount
+## 4. Make filesystems, create Btrfs subvolumes, and mount
 
 Label them to match `hardware-configuration.nix` (`BOOT` for the ESP, `nixos`
-for the Btrfs root). You regenerate the hardware config in step 4 anyway, but
+for the Btrfs root). You regenerate the hardware config in step 5 anyway, but
 the labels keep things consistent:
 
 ```sh
@@ -85,7 +116,7 @@ mount /dev/disk/by-label/BOOT /mnt/boot
 
 ---
 
-## 4. Generate hardware config, then drop in this repo
+## 5. Generate hardware config, then drop in this repo
 
 Generate the NixOS config skeleton:
 
@@ -117,7 +148,7 @@ cp /tmp/hardware-configuration.nix /mnt/etc/nixos/hardware-configuration.nix
 
 ---
 
-## 5. Install
+## 6. Install manually
 
 ```sh
 nixos-install --flake /mnt/etc/nixos#toonix
@@ -138,7 +169,7 @@ Remove the ISO from the VM so it boots from disk.
 
 ---
 
-## 6. First boot
+## 7. First boot
 
 1. The **GRUB** menu appears first — it lists every NixOS generation (your
    bootable rollback history) and boots the latest automatically.
@@ -150,7 +181,7 @@ Remove the ISO from the VM so it boots from disk.
 
 ---
 
-## 7. After install
+## 8. After install
 
 Subsequent changes are applied by rebuilding against the same flake output:
 
@@ -167,7 +198,7 @@ See [README.md](./README.md) for day-to-day usage — theme switching, which
 
 The real Omarchy host encrypts root (LUKS2 → `/dev/mapper/root`). The steps
 above leave it **unencrypted** so the VM boots without a passphrase. To
-reproduce encryption, change step 2–3 like so:
+reproduce encryption, change manual steps 3–4 like so:
 
 ```sh
 # Partition: same ESP, but the root partition becomes a LUKS container
@@ -184,7 +215,7 @@ cryptsetup open /dev/vda2 root            # → /dev/mapper/root
 mkfs.btrfs -L nixos /dev/mapper/root
 ```
 
-Then create/mount the subvolumes exactly as in step 3 but against
+Then create/mount the subvolumes exactly as in manual step 4 but against
 `/dev/mapper/root` instead of `/dev/disk/by-label/nixos`. Run
 `nixos-generate-config --root /mnt` **while the LUKS device is open** — it will
 auto-write the `boot.initrd.luks.devices."root"` entry and point the

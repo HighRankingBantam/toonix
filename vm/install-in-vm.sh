@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # install-in-vm.sh — run as root INSIDE the booted NixOS installer ISO to install
-# Toonix onto the VM's disk, using the flake shared in over 9p (no GitHub auth).
+# Toonix onto the VM's disk from an already downloaded/copied flake tree.
 #
-# Assumes you booted via ../run-toonix-vm.sh (UEFI + virtio disk /dev/vda + the
-# repo shared as 9p tag `toonixflake`). It partitions EXACTLY the Btrfs-subvolume
-# layout the committed hardware-configuration.nix expects (labels BOOT + nixos),
-# copies this flake into /mnt/etc/nixos, then installs from that persisted copy.
-# No nixos-generate-config is needed for this known QEMU target.
+# The internet bootstrap at ../install.sh downloads the flake and calls this
+# script with FLAKE_DIR set. The local VM fallback can still mount this repo over
+# 9p at /f and run this script directly.
+#
+# It partitions EXACTLY the Btrfs-subvolume layout the committed
+# hardware-configuration.nix expects (labels BOOT + nixos), copies this flake
+# into /mnt/etc/nixos, then installs from that persisted copy. No
+# nixos-generate-config is needed for this known QEMU target.
 #
 #   mkdir -p /f && mount -t 9p -o trans=virtio,version=9p2000.L toonixflake /f
 #   bash /f/vm/install-in-vm.sh                 # installs to /dev/vda
@@ -14,7 +17,7 @@
 set -euo pipefail
 
 DISK="${1:-/dev/vda}"
-FLAKE_DIR="${FLAKE_DIR:-/f}"          # where the 9p share is mounted
+FLAKE_DIR="${FLAKE_DIR:-/f}"          # downloaded flake dir, or 9p mount for local fallback
 FLAKE_ATTR="${FLAKE_ATTR:-toonix}"
 TARGET_FLAKE_DIR="/mnt/etc/nixos"
 
