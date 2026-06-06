@@ -253,6 +253,8 @@
   services.gvfs.enable = true;   # Nautilus mounting / trash / network shares
   services.upower.enable = true; # battery info for Waybar's battery module (no-op in a VM)
   services.power-profiles-daemon.enable = true;  # `powerprofilesctl` (omarchy-menu power)
+  services.fwupd.enable = true;  # NixOS-native firmware updates (`omarchy-update-firmware` shim)
+  services.hardware.bolt.enable = true; # Thunderbolt security daemon (Omarchy base package: bolt)
   # NOTE: swayosd-server runs as a Home-Manager user service (services.swayosd in
   # home.nix) — there is no NixOS `services.swayosd` option. This replaces
   # Omarchy's user unit, which hardcodes /usr/bin/swayosd-server.

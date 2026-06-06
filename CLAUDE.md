@@ -145,10 +145,15 @@ re-investigate these as "missing" — they're deliberate.
 ## Do NOT run on the VM (and why they're stubbed)
 
 `omarchy update`, `omarchy-refresh-{pacman,sddm,plymouth,limine}`,
-`omarchy-toggle-hybrid-gpu`, `omarchy-pkg-*`, `omarchy-migrate` — all call
-pacman/yay or write `/etc`,`/usr`,`/boot`. NixOS owns packages/boot/SDDM/Plymouth
-declaratively. `omarchy-nixos-compat.nix` shadows them with friendly no-ops.
-Migrations are also pre-marked done so nothing replays them.
+`omarchy-toggle-hybrid-gpu`, `omarchy-pkg-*`, and the Arch package
+install/remove/setup flows all call pacman/yay or write `/etc`,`/usr`,`/boot`.
+NixOS owns packages/boot/SDDM/Plymouth declaratively. `omarchy-nixos-compat.nix`
+shadows them with explicit NixOS messages so they fail fast instead of leaving
+partial state. Migrations are also pre-marked done so nothing replays them.
+
+NixOS-specific shims that are allowed: `omarchy-update-firmware` calls
+`fwupdmgr` through `services.fwupd`, and `omarchy-install-terminal` only switches
+among terminals already declared in `environment.systemPackages`.
 
 ## Known-degraded (acceptable for a test VM)
 
