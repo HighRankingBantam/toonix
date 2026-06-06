@@ -20,13 +20,15 @@ DISK="${1:-/dev/vda}"
 FLAKE_DIR="${FLAKE_DIR:-/f}"          # downloaded flake dir, or 9p mount for local fallback
 FLAKE_ATTR="${FLAKE_ATTR:-toonix}"
 TARGET_FLAKE_DIR="/mnt/etc/nixos"
+NIXOS_INSTALL_ATTEMPTS="${NIXOS_INSTALL_ATTEMPTS:-4}"
 
 NIX_INSTALL_CONFIG="${NIX_INSTALL_CONFIG:-$(cat <<'EOF'
 experimental-features = nix-command flakes
 download-attempts = 10
 connect-timeout = 60
-stalled-download-timeout = 300
-http-connections = 8
+stalled-download-timeout = 600
+http-connections = 2
+max-substitution-jobs = 2
 fallback = true
 EOF
 )}"
@@ -36,6 +38,10 @@ die() { echo "error: $*" >&2; exit 1; }
 [ -d /sys/firmware/efi ] || die "not booted in UEFI mode — reboot the VM in UEFI (run-toonix-vm.sh uses OVMF, so this should already be UEFI)."
 [ -b "$DISK" ] || die "$DISK is not a block device. Pass the right disk, e.g. bash install-in-vm.sh /dev/sda"
 [ -f "$FLAKE_DIR/flake.nix" ] || die "flake not mounted at $FLAKE_DIR. Run: mkdir -p $FLAKE_DIR && mount -t 9p -o trans=virtio,version=9p2000.L toonixflake $FLAKE_DIR"
+case "$NIXOS_INSTALL_ATTEMPTS" in
+  ''|*[!0-9]*) die "NIXOS_INSTALL_ATTEMPTS must be a positive integer" ;;
+esac
+[ "$NIXOS_INSTALL_ATTEMPTS" -gt 0 ] || die "NIXOS_INSTALL_ATTEMPTS must be greater than 0"
 
 export NIX_CONFIG="$NIX_INSTALL_CONFIG"
 
@@ -96,13 +102,26 @@ tar -C "$FLAKE_DIR" \
   -cf - . | tar -C "$TARGET_FLAKE_DIR" -xf -
 
 echo "==> nixos-install --flake $TARGET_FLAKE_DIR#$FLAKE_ATTR  (pulls from cache + builds custom bits; 15-40 min)"
-echo "==> using conservative Nix cache settings for VM/network reliability"
+echo "==> using conservative Nix cache settings and up to $NIXOS_INSTALL_ATTEMPTS install attempts"
 # The committed hardware-configuration.nix already matches this by-label Btrfs
 # layout + virtio modules, so it's used as-is. The flake is installed from
 # /mnt/etc/nixos so future rebuilds work after the 9p share disappears.
 # --no-root-passwd leaves root locked (no interactive prompt) — you log in as `bantam` / `changeme` (wheel
 # sudo). This makes the whole install non-interactive when TOONIX_UNATTENDED=1.
-nixos-install --flake "$TARGET_FLAKE_DIR#$FLAKE_ATTR" --no-channel-copy --no-root-passwd
+for attempt in $(seq 1 "$NIXOS_INSTALL_ATTEMPTS"); do
+  echo
+  echo "==> nixos-install attempt $attempt/$NIXOS_INSTALL_ATTEMPTS"
+  if nixos-install --flake "$TARGET_FLAKE_DIR#$FLAKE_ATTR" --no-channel-copy --no-root-passwd; then
+    break
+  fi
+
+  if [ "$attempt" -eq "$NIXOS_INSTALL_ATTEMPTS" ]; then
+    die "nixos-install failed after $NIXOS_INSTALL_ATTEMPTS attempts"
+  fi
+
+  echo "==> nixos-install failed; retrying after a short pause"
+  sleep 20
+done
 
 cat <<'EOF'
 

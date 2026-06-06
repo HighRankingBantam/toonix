@@ -19,8 +19,9 @@ NIX_INSTALL_CONFIG="${NIX_INSTALL_CONFIG:-$(cat <<'EOF'
 experimental-features = nix-command flakes
 download-attempts = 10
 connect-timeout = 60
-stalled-download-timeout = 300
-http-connections = 8
+stalled-download-timeout = 600
+http-connections = 2
+max-substitution-jobs = 2
 fallback = true
 EOF
 )}"
