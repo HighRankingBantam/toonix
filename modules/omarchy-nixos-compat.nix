@@ -319,6 +319,140 @@ let
       '';
     };
 
+    "${overrideDir}/omarchy-version-branch" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        echo "toonix/main"
+      '';
+    };
+
+    "${overrideDir}/omarchy-version-channel" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        echo "nixos-unstable"
+      '';
+    };
+
+    "${overrideDir}/omarchy-version-pkgs" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        if [ -e /run/current-system ]; then
+          date -d "@$(stat -Lc %Y /run/current-system)" "+%A, %B %d %Y at %H:%M"
+        else
+          echo "unknown"
+        fi
+      '';
+    };
+
+    "${overrideDir}/omarchy-upload-log" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        log_type="''${1:-install}"
+        temp_log="/tmp/upload-log.txt"
+        system_info="/tmp/system-info.txt"
+
+        {
+          echo "========================================="
+          echo "SYSTEM INFORMATION"
+          echo "========================================="
+          if command -v fastfetch >/dev/null 2>&1; then
+            fastfetch --logo none --pipe 2>/dev/null || true
+          else
+            echo "Hostname: $(uname -n)"
+            echo "Kernel: $(uname -r)"
+            command -v nixos-version >/dev/null 2>&1 && echo "NixOS: $(nixos-version)" || true
+            echo "Date: $(date)"
+          fi
+          echo
+          echo "========================================="
+          echo "LOG CONTENT"
+          echo "========================================="
+          echo
+        } > "$system_info"
+
+        case "$log_type" in
+          install)
+            if [ -s /mnt/var/log/nixos-install.log ]; then
+              install_log="/mnt/var/log/nixos-install.log"
+            elif [ -s /var/log/nixos-install.log ]; then
+              install_log="/var/log/nixos-install.log"
+            elif [ -s /mnt/var/log/omarchy-install.log ]; then
+              install_log="/mnt/var/log/omarchy-install.log"
+            elif [ -s /var/log/omarchy-install.log ]; then
+              install_log="/var/log/omarchy-install.log"
+            else
+              install_log=""
+            fi
+
+            cat "$system_info" > "$temp_log"
+            if [ -n "$install_log" ]; then
+              printf '\n=========================================\nINSTALL LOG (%s)\n=========================================\n\n' "$install_log" >> "$temp_log"
+              cat "$install_log" >> "$temp_log"
+            else
+              echo "Warning: install log not found." >&2
+            fi
+            echo "Uploading installation log to logs.omarchy.org..."
+            ;;
+
+          this-boot)
+            cat "$system_info" > "$temp_log"
+            journalctl -b 0 >> "$temp_log" 2>/dev/null || true
+            echo "Uploading current boot logs to logs.omarchy.org..."
+            ;;
+
+          last-boot)
+            cat "$system_info" > "$temp_log"
+            journalctl -b -1 >> "$temp_log" 2>/dev/null || true
+            echo "Uploading previous boot logs to logs.omarchy.org..."
+            ;;
+
+          installed|system-info)
+            cat "$system_info" > "$temp_log"
+            {
+              echo
+              echo "========================================="
+              echo "NIXOS SYSTEM PATH"
+              echo "========================================="
+              readlink -f /run/current-system 2>/dev/null || true
+              echo
+              echo "========================================="
+              echo "CURRENT SYSTEM PACKAGES"
+              echo "========================================="
+              if command -v nix-store >/dev/null 2>&1; then
+                nix-store -q --references /run/current-system/sw 2>/dev/null | sed 's#.*/##' | sort || true
+              else
+                echo "nix-store unavailable"
+              fi
+            } >> "$temp_log"
+            echo "Uploading system information to logs.omarchy.org..."
+            ;;
+
+          *)
+            echo "Usage: $0 [install|this-boot|last-boot|installed|system-info]" >&2
+            exit 1
+            ;;
+        esac
+
+        echo
+        url="$(curl -sf -F "file=@$temp_log" https://logs.omarchy.org/ || true)"
+        if [ -n "$url" ]; then
+          echo "Log uploaded successfully:"
+          echo "$url"
+        else
+          echo "Error: failed to upload log file" >&2
+          exit 1
+        fi
+      '';
+    };
+
     "${overrideDir}/omarchy-voxtype-install" = {
       executable = true;
       text = ''

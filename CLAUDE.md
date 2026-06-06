@@ -154,8 +154,9 @@ partial state. Migrations are also pre-marked done so nothing replays them.
 NixOS-specific shims that are allowed: `omarchy-update-firmware` calls
 `fwupdmgr` through `services.fwupd`, `omarchy-install-terminal` only switches
 among terminals already declared in `environment.systemPackages`, `omarchy-debug`
-prints a NixOS report instead of pacman output, and `omarchy-hw-vulkan` checks
-NixOS OpenGL/Vulkan driver paths.
+and `omarchy-upload-log` print NixOS reports instead of pacman output,
+Fastfetch version/channel/update helpers are NixOS-aware, and `omarchy-hw-vulkan`
+checks NixOS OpenGL/Vulkan driver paths.
 
 ## Known-degraded (acceptable for a test VM)
 
