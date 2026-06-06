@@ -7,9 +7,13 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hyprland-preview-share-picker = {
+      url = "git+https://github.com/WhySoBad/hyprland-preview-share-picker.git?rev=344394a8669fb82ff2744d2780327dd402ffb76a&submodules=1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }:
+  outputs = { self, nixpkgs, home-manager, hyprland-preview-share-picker, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -17,6 +21,9 @@
     {
       nixosConfigurations.toonix = nixpkgs.lib.nixosSystem {
         inherit system;
+        specialArgs = {
+          inherit hyprland-preview-share-picker;
+        };
         modules = [
           ./configuration.nix
           ./hardware-configuration.nix

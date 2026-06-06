@@ -1,5 +1,10 @@
 # NixOS system config — runs Omarchy v3.8.2 on top of nixpkgs.
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, hyprland-preview-share-picker, ... }:
+
+let
+  hyprlandPreviewSharePicker =
+    hyprland-preview-share-picker.packages.${pkgs.stdenv.hostPlatform.system}.default;
+in
 
 {
   imports = [
@@ -319,6 +324,7 @@
     hypridle           # autostart.conf starts it; hypridle.conf drives idle/lock
     # hyprlock provided by programs.hyprlock.enable (sets up its PAM service)
     hyprsunset         # nightlight toggle (hyprsunset.conf)
+    hyprlandPreviewSharePicker # custom screencast picker configured in ~/.config/hypr/xdph.conf
     hyprpicker
     hyprshot
     grim slurp satty

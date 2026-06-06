@@ -164,7 +164,8 @@ NixOS OpenGL/Vulkan driver paths.
 - AUR-only apps omitted: aether, cliamp, omarchy-nvim, tobi-try, ttf-ia-writer
   (see omitted list in `configuration.nix`). 1Password GUI/CLI, Typora,
   Voxtype, `usage`, `tzupdate`, and the direct DB/client-library mappings are
-  now ported through nixpkgs/NixOS modules or shims.
+  now ported through nixpkgs/NixOS modules or shims. `hyprland-preview-share-picker`
+  is ported through its pinned upstream Nix flake input.
 
 ## File map
 
