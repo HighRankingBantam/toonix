@@ -169,6 +169,23 @@ EOF
     _.path = "{{ cwd }}/bin"
   '';
 
+  # ── Voxtype default config (install/first-run/install-voxtype.hook) ────────
+  # Omarchy prompts users to install/download the dictation model after login.
+  # Toonix declares the binary, but keeps the model download opt-in. Seed a
+  # writable config so the Waybar right-click editor and `voxtype configure`
+  # both have a file to work with.
+  home.activation.omarchyVoxtypeConfig =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        voxtype_dir="$HOME/.config/voxtype"
+        voxtype_config="$voxtype_dir/config.toml"
+        mkdir -p "$voxtype_dir"
+        if [ ! -e "$voxtype_config" ]; then
+          install -m644 ${../omarchy/default/voxtype/config.toml} "$voxtype_config"
+        fi
+      fi
+    '';
+
   # ── Nautilus right-click extensions (nautilus-python.sh) ────────────────────
   # "Send via LocalSend" + "Transcode" menu items. Needs pkgs.nautilus-python
   # (added in configuration.nix). The .py files use shutil.which and no-op

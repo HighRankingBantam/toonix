@@ -173,6 +173,71 @@ let
         exec omarchy-default-terminal "$1"
       '';
     };
+
+    "${overrideDir}/omarchy-voxtype-install" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        if ! command -v voxtype >/dev/null 2>&1; then
+          echo "voxtype is not installed; add pkgs.voxtype to /etc/nixos." >&2
+          exit 1
+        fi
+
+        if gum confirm "Download Voxtype AI model (~150MB) and enable dictation?"; then
+          mkdir -p "$HOME/.config/voxtype"
+          cp "$OMARCHY_PATH/default/voxtype/config.toml" "$HOME/.config/voxtype/config.toml"
+
+          voxtype setup --download --no-post-install
+          if omarchy-hw-vulkan; then
+            voxtype setup gpu --enable || true
+          fi
+          voxtype setup systemd
+          systemctl --user enable --now voxtype.service 2>/dev/null || true
+
+          omarchy-restart-waybar
+          notify-send "    Voxtype Dictation Ready" "Hold F9 to dictate (or toggle with Super + Ctrl + X)." -t 10000
+        fi
+      '';
+    };
+
+    "${overrideDir}/omarchy-voxtype-remove" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        systemctl --user disable --now voxtype.service 2>/dev/null || true
+        rm -f "$HOME/.config/systemd/user/voxtype"*
+        systemctl --user daemon-reload 2>/dev/null || true
+        rm -rf "$HOME/.config/voxtype" "$HOME/.local/share/voxtype"
+        omarchy-restart-waybar
+        echo "Voxtype user configuration and model data removed. The package remains declared in /etc/nixos."
+      '';
+    };
+
+    "${overrideDir}/omarchy-voxtype-status" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        if ! command -v voxtype >/dev/null 2>&1; then
+          echo '{"alt": "", "tooltip": ""}'
+          exit 0
+        fi
+
+        if ! systemctl --user is-active --quiet voxtype.service 2>/dev/null; then
+          echo '{"alt": "", "tooltip": "Voxtype not configured"}'
+          exit 0
+        fi
+
+        voxtype status --follow --extended --format json | while read -r line; do
+          echo "$line" | jq -c '. + {alt: .class}'
+        done
+      '';
+    };
   };
 in
 {

@@ -79,7 +79,7 @@ autostart + elephant menus (the in-launcher Theme/Background/Unlocks menus).
 **Bundled-tree coverage (verified):** all 28 `omarchy/default/` subdirs are
 wired, sourced via the runtime symlink, or skipped with reason. Justified skips
 (can't/shouldn't port): `limine` (GRUB instead), `pacman` (Arch N/A),
-`voxtype`/`pi` (tools not in nixpkgs), `wayland-sessions`
+`pi` (tool not in nixpkgs), `wayland-sessions`
 (withUWSM), `snapper/root` (NixOS generations handle system rollback). Don't
 re-investigate these as "missing" — they're deliberate.
 
@@ -159,9 +159,9 @@ among terminals already declared in `environment.systemPackages`.
 
 - Keyboard-RGB theme steps (asusctl/qmk_hid) — guarded no-ops, hardware-specific.
 - Browser theme policy writes to `/etc/*/policies` — guarded, silently skip.
-- AUR-only apps omitted: aether, voxtype, cliamp, omarchy-nvim, tobi-try,
-  ttf-ia-writer (see omitted list in `configuration.nix`). 1Password GUI/CLI
-  and Typora are now ported through nixpkgs/NixOS modules.
+- AUR-only apps omitted: aether, cliamp, omarchy-nvim, tobi-try, ttf-ia-writer
+  (see omitted list in `configuration.nix`). 1Password GUI/CLI, Typora, and
+  Voxtype are now ported through nixpkgs/NixOS modules or shims.
 
 ## File map
 

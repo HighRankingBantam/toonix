@@ -200,6 +200,7 @@ nixos/
 | Web apps | Works | All 15 (ChatGPT, YouTube, WhatsApp, HEY, GitHub, X, Figma, Discord, Zoom, Google {Photos,Maps,Messages,Contacts}, Basecamp, Fizzy) generated as `.desktop` launchers that open as Thorium `--app` windows (`modules/omarchy-webapps.nix`); copy-url extension (Alt+Shift+L) wired into Thorium |
 | TUI launchers | Works | Disk Usage (dust) + Docker (lazydocker) open in floating/tiled terminals via `xdg-terminal-exec` (`omarchy-webapps.nix`) |
 | Terminal selection | Works | `omarchy-install-terminal` is shadowed with a NixOS-safe implementation that selects among the already-declared terminals instead of invoking pacman |
+| Dictation / Voxtype | Partial | `pkgs.voxtype` is declared and a writable config is seeded. `omarchy-voxtype-install` is shadowed to download the model and enable the user service without pacman; model download remains opt-in |
 | Branding / toggles | Works | fastfetch logo (`branding/about.txt`) + screensaver text + `~/.local/state/omarchy/toggles/hypr/flags.conf` all seeded (`omarchy-home.nix` steps 3 & 7) |
 | Browsers | Works | **Floorp** (`floorp-bin`, with Omarchy's Firefox VAAPI/Wayland policies applied) replaces Firefox; **Thorium** replaces Chromium and is the default — web apps resolve to it via a `chromium.desktop`→Thorium alias. Thorium isn't in nixpkgs so it's packaged from the official AppImage, pinned to a real release+hash — **builds as-is, no manual step** (see the note below to pick the CPU variant / bump the version) |
 | Git config | Works | Omarchy's `config/git/config` ported into `programs.git` (aliases co/br/ci/st, rerere, histogram diff, push.autoSetupRemote, …) |
@@ -209,7 +210,7 @@ nixos/
 | `omarchy-refresh-{pacman,sddm,plymouth,limine}` | Do NOT run | Arch/boot-specific; NixOS owns packages, SDDM, Plymouth, and the bootloader declaratively |
 | `omarchy-toggle-hybrid-gpu` | Do NOT run | Arch GPU-driver toggling; configure GPUs in `configuration.nix` instead |
 | Keyboard RGB theming | No-op | `omarchy-theme-set-keyboard*` targets ASUS ROG / Framework 16 hardware; harmless no-op in a VM |
-| AUR-only apps | Omitted | e.g. aether, voxtype, cliamp, omarchy-nvim — see the omitted list in `configuration.nix` |
+| AUR-only apps | Omitted | e.g. aether, cliamp, omarchy-nvim — see the omitted list in `configuration.nix` |
 | Nautilus right-click extensions | Works | Omarchy's `localsend.py`/`transcode.py` installed via `pkgs.nautilus-python` + the `.py` in `~/.local/share/nautilus-python/extensions/`, with `NAUTILUS_4_EXTENSION_DIR` pointed at the loader so Nautilus actually loads them ("Send via LocalSend"/"Transcode" right-click items). They also no-op gracefully if a helper binary is missing |
 
 > Rule of thumb: anything that mutates **packages, the bootloader, SDDM,

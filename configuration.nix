@@ -304,7 +304,7 @@
   #   aether, asdcontrol, cliamp,
   #   kernel-modules-hook, mariadb-libs, omarchy-nvim, omarchy-walker,
   #   plocate (use mlocate), python-poetry-core, python-terminaltexteffects,
-  #   sushi, tobi-try, ttf-ia-writer, voxtype, yay, ufw-docker
+  #   sushi, tobi-try, ttf-ia-writer, yay, ufw-docker
   environment.systemPackages = with pkgs; [
     # ★ Claude Code (user-requested)
     claude-code
@@ -364,6 +364,7 @@
     yt-dlp
     woff2
     libqalculate tree-sitter
+    voxtype
 
     # Editors / dev (Omarchy includes these via packaging/base)
     neovim
