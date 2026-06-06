@@ -53,16 +53,51 @@ in
       "video/x-msvideo"   = "mpv.desktop";
       "video/x-flv"       = "mpv.desktop";
       "video/x-ms-wmv"    = "mpv.desktop";
+      "video/3gpp"        = "mpv.desktop";
+      "video/3gpp2"       = "mpv.desktop";
+      "video/x-ms-asf"    = "mpv.desktop";
+      "video/x-ogm+ogg"   = "mpv.desktop";
+      "video/x-theora+ogg" = "mpv.desktop";
+      "application/ogg"   = "mpv.desktop";
 
       # Text/code → nvim
       "text/plain"                 = "nvim.desktop";
+      "text/english"               = "nvim.desktop";
+      "text/x-makefile"            = "nvim.desktop";
+      "text/x-c++hdr"              = "nvim.desktop";
       "application/x-shellscript"  = "nvim.desktop";
+      "text/x-chdr"                = "nvim.desktop";
       "text/x-csrc"                = "nvim.desktop";
+      "text/x-c"                   = "nvim.desktop";
       "text/x-c++src"              = "nvim.desktop";
+      "text/x-c++"                 = "nvim.desktop";
+      "text/x-java"                = "nvim.desktop";
+      "text/x-moc"                 = "nvim.desktop";
+      "text/x-pascal"              = "nvim.desktop";
+      "text/x-tcl"                 = "nvim.desktop";
+      "text/x-tex"                 = "nvim.desktop";
       "application/xml"            = "nvim.desktop";
       "text/xml"                   = "nvim.desktop";
     };
   };
+
+  # ── GTK/Nautilus bookmarks (user-dirs.sh) ─────────────────────────────────
+  # Keep this writable and additive. Nautilus mutates the file at runtime, so a
+  # declarative symlink would make the file manager feel broken.
+  home.activation.omarchyGtkBookmarks =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        gtk_dir="$HOME/.config/gtk-3.0"
+        bookmarks="$gtk_dir/bookmarks"
+        mkdir -p "$gtk_dir"
+        touch "$bookmarks"
+
+        for dir in Downloads Projects Pictures Videos; do
+          line="file://$HOME/$dir $dir"
+          grep -qxF "$line" "$bookmarks" || printf '%s\n' "$line" >> "$bookmarks"
+        done
+      fi
+    '';
 
   # ── XCompose (xcompose.sh) ──────────────────────────────────────────────────
   # CapsLock = Compose (set via hypr input kb_options=compose:caps). Pulls in

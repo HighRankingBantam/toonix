@@ -30,8 +30,12 @@
   '';
 
   # ── sudo: 10 password tries instead of 3 (increase-sudo-tries.sh) ───────────
+  # timezones.sh — Omarchy lets the Waybar/menu timezone picker call
+  # timedatectl/tzupdate without a password. Include both stable profile paths
+  # and store paths so sudoers matches the command users actually invoke.
   security.sudo.extraConfig = ''
     Defaults passwd_tries=10
+    %wheel ALL=(root) NOPASSWD: /run/current-system/sw/bin/timedatectl, /run/current-system/sw/bin/tzupdate, ${pkgs.systemd}/bin/timedatectl, ${pkgs.tzupdate}/bin/tzupdate
   '';
 
   # ── Wi-Fi powersave off (wifi-powersave-rules.sh — off while on AC) ─────────

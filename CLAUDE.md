@@ -152,16 +152,19 @@ shadows them with explicit NixOS messages so they fail fast instead of leaving
 partial state. Migrations are also pre-marked done so nothing replays them.
 
 NixOS-specific shims that are allowed: `omarchy-update-firmware` calls
-`fwupdmgr` through `services.fwupd`, and `omarchy-install-terminal` only switches
-among terminals already declared in `environment.systemPackages`.
+`fwupdmgr` through `services.fwupd`, `omarchy-install-terminal` only switches
+among terminals already declared in `environment.systemPackages`, `omarchy-debug`
+prints a NixOS report instead of pacman output, and `omarchy-hw-vulkan` checks
+NixOS OpenGL/Vulkan driver paths.
 
 ## Known-degraded (acceptable for a test VM)
 
 - Keyboard-RGB theme steps (asusctl/qmk_hid) — guarded no-ops, hardware-specific.
 - Browser theme policy writes to `/etc/*/policies` — guarded, silently skip.
 - AUR-only apps omitted: aether, cliamp, omarchy-nvim, tobi-try, ttf-ia-writer
-  (see omitted list in `configuration.nix`). 1Password GUI/CLI, Typora, and
-  Voxtype are now ported through nixpkgs/NixOS modules or shims.
+  (see omitted list in `configuration.nix`). 1Password GUI/CLI, Typora,
+  Voxtype, `usage`, `tzupdate`, and the direct DB/client-library mappings are
+  now ported through nixpkgs/NixOS modules or shims.
 
 ## File map
 

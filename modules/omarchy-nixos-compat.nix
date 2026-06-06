@@ -174,6 +174,151 @@ let
       '';
     };
 
+    "${overrideDir}/omarchy-debug" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        no_sudo=false
+        print_only=false
+
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            --no-sudo)
+              no_sudo=true
+              shift
+              ;;
+            --print)
+              print_only=true
+              shift
+              ;;
+            *)
+              echo "Unknown option: $1" >&2
+              echo "Usage: omarchy-debug [--no-sudo] [--print]" >&2
+              exit 1
+              ;;
+          esac
+        done
+
+        log_file="/tmp/omarchy-debug.log"
+
+        if [ "$no_sudo" = true ]; then
+          dmesg_output="(skipped - --no-sudo flag used)"
+        else
+          dmesg_output="$(sudo dmesg 2>&1 || true)"
+        fi
+
+        current_system="$(readlink -f /run/current-system 2>/dev/null || true)"
+        current_sw="$(readlink -f /run/current-system/sw 2>/dev/null || true)"
+
+        {
+          echo "Date: $(date)"
+          echo "Hostname: $(hostname)"
+          echo "Toonix config: $(readlink -f /etc/nixos 2>/dev/null || echo /etc/nixos)"
+          echo "Omarchy version: $(cat "$OMARCHY_PATH/version" 2>/dev/null || echo unknown)"
+          echo "Current system: ''${current_system:-unknown}"
+          echo
+          echo "========================================="
+          echo "SYSTEM INFORMATION"
+          echo "========================================="
+          if command -v inxi >/dev/null 2>&1; then
+            inxi -Farz || true
+          else
+            uname -a
+            command -v nixos-version >/dev/null 2>&1 && nixos-version || true
+          fi
+          echo
+          echo "========================================="
+          echo "DMESG"
+          echo "========================================="
+          echo "$dmesg_output"
+          echo
+          echo "========================================="
+          echo "JOURNALCTL (CURRENT BOOT, WARNINGS+ERRORS)"
+          echo "========================================="
+          journalctl -b -p 4..1 2>&1 || true
+          echo
+          echo "========================================="
+          echo "NIXOS GENERATIONS"
+          echo "========================================="
+          if command -v nix-env >/dev/null 2>&1; then
+            sudo nix-env --list-generations --profile /nix/var/nix/profiles/system 2>&1 || true
+          else
+            echo "nix-env unavailable"
+          fi
+          echo
+          echo "========================================="
+          echo "CURRENT SYSTEM PACKAGES"
+          echo "========================================="
+          if command -v nix-store >/dev/null 2>&1 && [ -n "$current_sw" ]; then
+            nix-store -q --references "$current_sw" 2>/dev/null | sed 's#.*/##' | sort || true
+          else
+            echo "nix-store unavailable"
+          fi
+        } > "$log_file"
+
+        if [ "$print_only" = true ]; then
+          cat "$log_file"
+          exit 0
+        fi
+
+        options=("View log" "Save in current directory")
+        if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+          options=("Upload log" "''${options[@]}")
+        fi
+
+        action="$(gum choose "''${options[@]}")"
+
+        case "$action" in
+          "Upload log")
+            echo "Uploading debug log to logs.omarchy.org..."
+            url="$(curl -sf -F "file=@$log_file" https://logs.omarchy.org/ || true)"
+            if [ -n "$url" ]; then
+              echo "Log uploaded successfully:"
+              echo "$url"
+            else
+              echo "Error: failed to upload log file" >&2
+              exit 1
+            fi
+            ;;
+          "View log")
+            less "$log_file"
+            ;;
+          "Save in current directory")
+            cp "$log_file" "./omarchy-debug.log"
+            echo "Log saved to $(pwd)/omarchy-debug.log"
+            ;;
+        esac
+      '';
+    };
+
+    "${overrideDir}/omarchy-hw-vulkan" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # NixOS exposes driver data through profile/OpenGL paths, not /usr/share.
+        for dir in \
+          /run/opengl-driver/share/vulkan/icd.d \
+          /run/opengl-driver-32/share/vulkan/icd.d \
+          /run/current-system/sw/share/vulkan/icd.d \
+          "$HOME/.nix-profile/share/vulkan/icd.d" \
+          "/etc/profiles/per-user/$USER/share/vulkan/icd.d"; do
+          if [ -d "$dir" ] && find "$dir" -maxdepth 1 -name '*.json' -print -quit | grep -q .; then
+            exit 0
+          fi
+        done
+
+        if command -v vulkaninfo >/dev/null 2>&1 && vulkaninfo --summary >/dev/null 2>&1; then
+          exit 0
+        fi
+
+        exit 1
+      '';
+    };
+
     "${overrideDir}/omarchy-voxtype-install" = {
       executable = true;
       text = ''

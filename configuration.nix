@@ -302,8 +302,8 @@
   # Sourced from omarchy/install/omarchy-base.packages, mapped to nixpkgs.
   # Omitted (AUR / Arch-only / no nixpkgs equivalent):
   #   aether, asdcontrol, cliamp,
-  #   kernel-modules-hook, mariadb-libs, omarchy-nvim, omarchy-walker,
-  #   plocate (use mlocate), python-poetry-core, python-terminaltexteffects,
+  #   kernel-modules-hook, omarchy-nvim, omarchy-walker,
+  #   python-poetry-core, python-terminaltexteffects,
   #   sushi, tobi-try, ttf-ia-writer, yay, ufw-docker
   environment.systemPackages = with pkgs; [
     # ★ Claude Code (user-requested)
@@ -330,6 +330,7 @@
 
     # Used by 282 omarchy-* shell scripts
     uwsm
+    alsa-utils
     pamixer playerctl brightnessctl
     pavucontrol wireplumber
     networkmanagerapplet
@@ -343,6 +344,7 @@
     libsecret gnome-keyring
     man-db less inetutils whois   # locate/updatedb come from services.locate (plocate); mlocate dropped (collided)
     luarocks
+    usage
 
     # Terminals
     alacritty
@@ -364,6 +366,9 @@
     yt-dlp
     woff2
     libqalculate tree-sitter
+    libyaml libpq mariadb-connector-c
+    tzupdate
+    vulkan-tools
     voxtype
 
     # Editors / dev (Omarchy includes these via packaging/base)
@@ -378,6 +383,10 @@
     nautilus
     nautilus-python          # loads Omarchy's right-click extensions (localsend/transcode)
     gvfs ffmpegthumbnailer webp-pixbuf-loader
+    cups-filters
+    xdg-user-dirs xdg-user-dirs-gtk
+    jmtpfs libmtp nfs-utils
+    python3Packages.pygobject3
     gnome-calculator gnome-themes-extra gnome-disk-utility yaru-theme
     libreoffice
     obsidian
