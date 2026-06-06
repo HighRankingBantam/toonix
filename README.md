@@ -203,7 +203,7 @@ nixos/
 | Branding / toggles | Works | fastfetch logo (`branding/about.txt`) + screensaver text + `~/.local/state/omarchy/toggles/hypr/flags.conf` all seeded (`omarchy-home.nix` steps 3 & 7) |
 | Browsers | Works | **Floorp** (`floorp-bin`, with Omarchy's Firefox VAAPI/Wayland policies applied) replaces Firefox; **Thorium** replaces Chromium and is the default — web apps resolve to it via a `chromium.desktop`→Thorium alias. Thorium isn't in nixpkgs so it's packaged from the official AppImage, pinned to a real release+hash — **builds as-is, no manual step** (see the note below to pick the CPU variant / bump the version) |
 | Git config | Works | Omarchy's `config/git/config` ported into `programs.git` (aliases co/br/ci/st, rerere, histogram diff, push.autoSetupRemote, …) |
-| Screen recording | Degraded | `omarchy-capture-screenrecording` shells out to **gpu-screen-recorder** (AUR-only). `wl-screenrec` is installed as a working alternative; screenshots (grim/slurp/satty) work as-is |
+| Screen recording | Works | `programs.gpu-screen-recorder.enable` installs Omarchy's recorder and the setcap wrapper it needs; `wl-screenrec` is also installed as a fallback. Screenshots/OCR use grim/slurp/satty/tesseract |
 | Claude Code | Works | Preinstalled via `pkgs.claude-code`; Omarchy's `cx` alias launches `claude` |
 | `omarchy update` / package installers | Blocked safely | Updates and install/remove/package workflows pull from pacman/AUR + git on Arch. Toonix shadows them with clear NixOS messages; edit `/etc/nixos` and run `sudo nixos-rebuild switch --flake /etc/nixos#toonix` instead |
 | `omarchy-refresh-{pacman,sddm,plymouth,limine}` | Do NOT run | Arch/boot-specific; NixOS owns packages, SDDM, Plymouth, and the bootloader declaratively |

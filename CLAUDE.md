@@ -157,9 +157,6 @@ among terminals already declared in `environment.systemPackages`.
 
 ## Known-degraded (acceptable for a test VM)
 
-- Screen recording: `omarchy-capture-screenrecording` calls AUR-only
-  `gpu-screen-recorder`. `wl-screenrec` is installed as an alternative; screenshots
-  (grim/slurp/satty) work.
 - Keyboard-RGB theme steps (asusctl/qmk_hid) — guarded no-ops, hardware-specific.
 - Browser theme policy writes to `/etc/*/policies` — guarded, silently skip.
 - AUR-only apps omitted: aether, voxtype, cliamp, omarchy-nvim, tobi-try,

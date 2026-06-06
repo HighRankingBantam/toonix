@@ -168,6 +168,11 @@
   # (so it's dropped from environment.systemPackages).
   programs.hyprlock.enable = true;
 
+  # Screen recording: Omarchy's capture script calls gpu-screen-recorder
+  # directly. NixOS has a module that installs it and creates the setcap wrapper
+  # (`gsr-kms-server`) needed for promptless KMS capture.
+  programs.gpu-screen-recorder.enable = true;
+
   # XDG portals — Hyprland portal + GTK portal (both needed by Omarchy)
   xdg.portal = {
     enable = true;
@@ -296,7 +301,7 @@
   # ── System packages ──────────────────────────────────────────────────────
   # Sourced from omarchy/install/omarchy-base.packages, mapped to nixpkgs.
   # Omitted (AUR / Arch-only / no nixpkgs equivalent):
-  #   aether, asdcontrol, cliamp, gpu-screen-recorder,
+  #   aether, asdcontrol, cliamp,
   #   kernel-modules-hook, mariadb-libs, omarchy-nvim, omarchy-walker,
   #   plocate (use mlocate), python-poetry-core, python-terminaltexteffects,
   #   sushi, tobi-try, ttf-ia-writer, voxtype, yay, ufw-docker
@@ -393,7 +398,7 @@
     parted                # drive helper fns in omarchy's bash framework
     util-linux            # rfkill/lsblk/wipefs (bluetooth/wifi restart, drive fns)
     opencode              # `c` alias in omarchy's bash aliases
-    wl-screenrec          # screen recording (gpu-screen-recorder is AUR-only)
+    wl-screenrec          # additional wlroots screen recording fallback
     wiremix               # audio control panel TUI (omarchy-launch-audio, SUPER+CTRL+A)
     bluetui               # bluetooth control panel TUI (omarchy-launch-bluetooth, SUPER+CTRL+B)
 
