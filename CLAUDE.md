@@ -157,8 +157,9 @@ Migrations are also pre-marked done so nothing replays them.
   (grim/slurp/satty) work.
 - Keyboard-RGB theme steps (asusctl/qmk_hid) — guarded no-ops, hardware-specific.
 - Browser theme policy writes to `/etc/*/policies` — guarded, silently skip.
-- AUR-only apps omitted: aether, voxtype, cliamp, 1Password GUI, omarchy-nvim,
-  tobi-try, typora, ttf-ia-writer (see omitted list in `configuration.nix`).
+- AUR-only apps omitted: aether, voxtype, cliamp, omarchy-nvim, tobi-try,
+  ttf-ia-writer (see omitted list in `configuration.nix`). 1Password GUI/CLI
+  and Typora are now ported through nixpkgs/NixOS modules.
 
 ## File map
 

@@ -273,6 +273,17 @@
   programs.dconf.enable = true;
   programs.system-config-printer.enable = true;
 
+  # 1Password: Omarchy installs both the desktop app and CLI. NixOS has native
+  # modules for these, which also add the setgid wrappers used by browser/CLI
+  # integration. This closes the SUPER+SHIFT+/ binding and lock-on-screen-lock.
+  programs._1password = {
+    enable = true;
+  };
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "bantam" ];
+  };
+
   # Enable fcitx5 input method (Omarchy ships fcitx5 by default)
   i18n.inputMethod = {
     enable = true;
@@ -283,10 +294,10 @@
   # ── System packages ──────────────────────────────────────────────────────
   # Sourced from omarchy/install/omarchy-base.packages, mapped to nixpkgs.
   # Omitted (AUR / Arch-only / no nixpkgs equivalent):
-  #   1password-beta, aether, asdcontrol, cliamp, gpu-screen-recorder,
+  #   aether, asdcontrol, cliamp, gpu-screen-recorder,
   #   kernel-modules-hook, mariadb-libs, omarchy-nvim, omarchy-walker,
   #   plocate (use mlocate), python-poetry-core, python-terminaltexteffects,
-  #   sushi, tobi-try, ttf-ia-writer, typora, voxtype, yay, ufw-docker
+  #   sushi, tobi-try, ttf-ia-writer, voxtype, yay, ufw-docker
   environment.systemPackages = with pkgs; [
     # ★ Claude Code (user-requested)
     claude-code
@@ -367,10 +378,10 @@
     mpv imv
     evince
     xournalpp
+    typora
     signal-desktop
     spotify
     localsend
-    _1password-cli
 
     # Audit-driven additions (gap analysis of Omarchy config/script deps)
     gtk3                  # gtk-launch, gtk-update-icon-cache (omarchy-menu)
@@ -395,8 +406,8 @@
   ];
 
   # ── Nix settings ──────────────────────────────────────────────────────────
-  # Several Omarchy apps are unfree: claude-code, obsidian, spotify,
-  # 1password-cli, (and chromium codecs). Allow them for this personal VM.
+  # Several Omarchy apps are unfree: claude-code, obsidian, spotify, Typora,
+  # 1Password, and Chromium-codec bits. Allow them for this personal VM.
   nixpkgs.config.allowUnfree = true;
 
   # Obsidian pins electron_40 (EOL 2026-06-30). Inert today, but once nixpkgs

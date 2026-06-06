@@ -191,7 +191,7 @@ nixos/
 | System tweaks | Works | Ported from Omarchy `install/config/*`: inotify watchers, fd limits, fast shutdown, sudo tries=10, wifi powersave off, wireless regulatory domain/database, power button ignored for Omarchy's power menu, USB autosuspend disabled, locate/plocate, GPG keyservers, fuse-unmount-before-sleep (`modules/system-tweaks.nix`) |
 | Networking / Docker firewall | Works | NetworkManager uses Omarchy's iwd Wi-Fi backend; Omarchy's resolved stub, Docker bridge DNS listener, socket-activated Docker daemon with bounded JSON logs, and LocalSend TCP/UDP 53317 firewall allowance are declared in `configuration.nix` |
 | Printer discovery | Works | CUPS + Avahi are enabled, `.local` mDNS resolution is handled through Avahi, resolved mDNS is disabled, `cups-browsed` auto-creates remote printers (`CreateRemotePrinters Yes`), CUPS-PDF is installed, and `system-config-printer` is enabled |
-| Package parity | Improved | Added more direct mappings from `omarchy/install/omarchy-base.packages`: Docker compose/buildx, FAT/exFAT tools, `less`, `qalc` (`libqalculate`), `tree-sitter`, and WebP pixbuf support |
+| Package parity | Improved | Added more direct mappings from `omarchy/install/omarchy-base.packages`: Docker compose/buildx, FAT/exFAT tools, `less`, `qalc` (`libqalculate`), `tree-sitter`, Typora, 1Password GUI/CLI, and WebP pixbuf support |
 | Mimetypes / XDG dirs / XCompose | Works | imv·mpv·evince·nvim defaults, disabled Templates/Public/Desktop, CapsLock-compose emoji (`modules/omarchy-home-extras.nix`) |
 | GNOME/GTK defaults + keyring | Works | Omarchy first-run defaults are declarative: dark GTK/color scheme, ristretto's Yaru-yellow icons, primary-paste enabled, and passwordless `Default_keyring` seeded only if absent (`modules/omarchy-home-extras.nix`) |
 | Omarchy assistant skill | Works | `install/config/omarchy-ai-skill.sh` is ported: the bundled Omarchy skill is symlinked into `~/.agents`, `~/.claude`, `~/.codex`, and `~/.pi/agent` skill directories |
@@ -207,7 +207,7 @@ nixos/
 | `omarchy-refresh-{pacman,sddm,plymouth,limine}` | Do NOT run | Arch/boot-specific; NixOS owns packages, SDDM, Plymouth, and the bootloader declaratively |
 | `omarchy-toggle-hybrid-gpu` | Do NOT run | Arch GPU-driver toggling; configure GPUs in `configuration.nix` instead |
 | Keyboard RGB theming | No-op | `omarchy-theme-set-keyboard*` targets ASUS ROG / Framework 16 hardware; harmless no-op in a VM |
-| AUR-only apps | Omitted | e.g. 1Password GUI, aether, typora, voxtype, omarchy-nvim — see the omitted list in `configuration.nix` |
+| AUR-only apps | Omitted | e.g. aether, voxtype, cliamp, omarchy-nvim — see the omitted list in `configuration.nix` |
 | Nautilus right-click extensions | Works | Omarchy's `localsend.py`/`transcode.py` installed via `pkgs.nautilus-python` + the `.py` in `~/.local/share/nautilus-python/extensions/`, with `NAUTILUS_4_EXTENSION_DIR` pointed at the loader so Nautilus actually loads them ("Send via LocalSend"/"Transcode" right-click items). They also no-op gracefully if a helper binary is missing |
 
 > Rule of thumb: anything that mutates **packages, the bootloader, SDDM,
