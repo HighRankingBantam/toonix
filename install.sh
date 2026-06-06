@@ -15,13 +15,23 @@ TOONIX_BRANCH="${TOONIX_BRANCH:-main}"
 TOONIX_ARCHIVE_URL="${TOONIX_ARCHIVE_URL:-https://github.com/${TOONIX_REPO}/archive/refs/heads/${TOONIX_BRANCH}.tar.gz}"
 FLAKE_ATTR="${FLAKE_ATTR:-toonix}"
 
+NIX_INSTALL_CONFIG="${NIX_INSTALL_CONFIG:-$(cat <<'EOF'
+experimental-features = nix-command flakes
+download-attempts = 10
+connect-timeout = 60
+stalled-download-timeout = 300
+http-connections = 8
+fallback = true
+EOF
+)}"
+
 die() { echo "error: $*" >&2; exit 1; }
 
 [ "$(id -u)" = "0" ] || die "run as root, e.g. curl ... | sudo bash"
 command -v curl >/dev/null || die "curl is required in the installer environment"
 command -v tar >/dev/null || die "tar is required in the installer environment"
 
-export NIX_CONFIG="experimental-features = nix-command flakes"
+export NIX_CONFIG="$NIX_INSTALL_CONFIG"
 
 WORKDIR="$(mktemp -d -t toonix-install.XXXXXX)"
 cleanup() {

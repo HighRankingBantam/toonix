@@ -21,13 +21,23 @@ FLAKE_DIR="${FLAKE_DIR:-/f}"          # downloaded flake dir, or 9p mount for lo
 FLAKE_ATTR="${FLAKE_ATTR:-toonix}"
 TARGET_FLAKE_DIR="/mnt/etc/nixos"
 
+NIX_INSTALL_CONFIG="${NIX_INSTALL_CONFIG:-$(cat <<'EOF'
+experimental-features = nix-command flakes
+download-attempts = 10
+connect-timeout = 60
+stalled-download-timeout = 300
+http-connections = 8
+fallback = true
+EOF
+)}"
+
 die() { echo "error: $*" >&2; exit 1; }
 
 [ -d /sys/firmware/efi ] || die "not booted in UEFI mode — reboot the VM in UEFI (run-toonix-vm.sh uses OVMF, so this should already be UEFI)."
 [ -b "$DISK" ] || die "$DISK is not a block device. Pass the right disk, e.g. bash install-in-vm.sh /dev/sda"
 [ -f "$FLAKE_DIR/flake.nix" ] || die "flake not mounted at $FLAKE_DIR. Run: mkdir -p $FLAKE_DIR && mount -t 9p -o trans=virtio,version=9p2000.L toonixflake $FLAKE_DIR"
 
-export NIX_CONFIG="experimental-features = nix-command flakes"
+export NIX_CONFIG="$NIX_INSTALL_CONFIG"
 
 echo
 echo "  ⚠  This will ERASE $DISK and install Toonix (flake $FLAKE_DIR#$FLAKE_ATTR)."
@@ -37,6 +47,10 @@ if [ "${TOONIX_UNATTENDED:-0}" != "1" ]; then
   read -rp "  Type ERASE to continue: " ok
   [ "$ok" = "ERASE" ] || die "aborted."
 fi
+
+echo "==> cleaning any previous install mounts"
+swapoff -a 2>/dev/null || true
+umount -R /mnt 2>/dev/null || true
 
 echo "==> partitioning $DISK (GPT: 2GiB ESP + rest Btrfs)"
 parted -s "$DISK" -- mklabel gpt
@@ -82,6 +96,7 @@ tar -C "$FLAKE_DIR" \
   -cf - . | tar -C "$TARGET_FLAKE_DIR" -xf -
 
 echo "==> nixos-install --flake $TARGET_FLAKE_DIR#$FLAKE_ATTR  (pulls from cache + builds custom bits; 15-40 min)"
+echo "==> using conservative Nix cache settings for VM/network reliability"
 # The committed hardware-configuration.nix already matches this by-label Btrfs
 # layout + virtio modules, so it's used as-is. The flake is installed from
 # /mnt/etc/nixos so future rebuilds work after the 9p share disappears.
