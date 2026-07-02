@@ -21,13 +21,14 @@
     DefaultLimitNOFILE = "65536:524288";
     DefaultTimeoutStopSec = "5s";
   };
-  # The USER manager (user.conf) still uses the string extraConfig form on
-  # unstable — there is NO `systemd.user.settings` option (only the SYSTEM
-  # manager was refactored to `.settings`). CI confirmed this.
-  systemd.user.extraConfig = ''
-    DefaultLimitNOFILE=65536:524288
-    DefaultTimeoutStopSec=5s
-  '';
+  # The USER manager (user.conf) was refactored to the structured
+  # `systemd.user.settings.Manager` too (nixpkgs 2026-06; the old
+  # `systemd.user.extraConfig` string form now asserts-fails: "no longer has any
+  # effect; please remove it"). Mirrors the SYSTEM manager block above.
+  systemd.user.settings.Manager = {
+    DefaultLimitNOFILE = "65536:524288";
+    DefaultTimeoutStopSec = "5s";
+  };
   # fast-shutdown.sh's other half: user@.service ships an EXPLICIT
   # TimeoutStopSec=120s upstream, so the manager-level default above does NOT
   # cover it — without this drop-in a lingering user session can still stall
