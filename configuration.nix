@@ -508,11 +508,16 @@ in
   # 1Password, and Chromium-codec bits. Allow them for this personal VM.
   nixpkgs.config.allowUnfree = true;
 
-  # Obsidian pins electron_40 (EOL 2026-06-30). Inert today, but once nixpkgs
-  # marks electron_40 insecure this whitelist keeps obsidian evaluating/building.
-  # (If a later nixpkgs bump changes the electron point-release, the build error
-  #  prints the exact string to use here.) Pin a flake.lock to control timing.
-  nixpkgs.config.permittedInsecurePackages = [ "electron-40.10.2" ];
+  # Obsidian bundles Electron (currently electron_40, EOL 2026-06-30 — now past),
+  # so once nixpkgs flags that Electron insecure a bare obsidian build aborts.
+  # An exact `permittedInsecurePackages = [ "electron-40.X.Y" ]` pin is brittle:
+  # it drifts with every electron_40 point bump AND every flake.lock update. The
+  # old pin here ("electron-40.10.2") never even matched a real build — unstable
+  # ships electron_40 40.8.2 (nixos MCP verified 2026-07-02), so it protected
+  # nothing. Allow by NAME instead: version-independent, keeps obsidian evaluating
+  # across point releases. obsidian is this config's only Electron app, so the
+  # allowed surface stays tight.
+  nixpkgs.config.allowInsecurePredicate = pkg: lib.getName pkg == "electron";
 
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];

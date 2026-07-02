@@ -138,10 +138,14 @@ limit 5 — though GRUB generations remain the primary system rollback.)
     generated in `modules/omarchy-webapps.nix`.
 12. **`kdePackages.kdenlive`, NOT bare `kdenlive`** (the top-level attr doesn't
     exist on unstable → "attribute missing"). Same for other KDE apps.
-13. **No `permittedInsecurePackages` needed** — obsidian (1.12.7) pins
-    `electron_40`, above the insecure cutoff. Don't add a stale electron string;
-    if obsidian ever re-pins an EOL electron, the build error prints the exact
-    string to add. Also: `signal-desktop` (NOT `-bin`, which now throws). **1Password
+13. **Obsidian's insecure Electron → allow by NAME, not by version string.**
+    obsidian (1.12.7) bundles `electron_40` (EOL 2026-06-30, now past → will be
+    flagged insecure). Do NOT pin `permittedInsecurePackages = ["electron-40.X.Y"]`
+    — that drifts with every point bump + flake.lock update (the old
+    `electron-40.10.2` pin never matched; unstable ships 40.8.2). Use
+    `nixpkgs.config.allowInsecurePredicate = pkg: lib.getName pkg == "electron";`
+    instead — version-independent, and obsidian is the only Electron app so the
+    scope stays tight. Also: `signal-desktop` (NOT `-bin`, which now throws). **1Password
     is now via the NixOS modules** `programs._1password` + `programs._1password-gui`
     (`polkitPolicyOwners = ["bantam"]`) — these add the setgid browser-integration
     + polkit helpers a bare `_1password`/`_1password-cli` systemPackages entry would
