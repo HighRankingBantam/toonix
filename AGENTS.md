@@ -1,48 +1,31 @@
-# AGENTS.md
+# AGENTS.md — Toonix
 
-## Project Overview
-- **Project:** Toonix — a NixOS flake that ports Omarchy v3.8.2 into a QEMU-friendly NixOS desktop.
-- **Target user:** developers and Linux desktop users who want an Omarchy-style Hyprland setup on NixOS.
-- **My skill level:** intermediate.
-- **Stack:** NixOS, Home Manager, Hyprland, UWSM, QEMU, bash, and the bundled Omarchy source tree.
+Toonix is a **NixOS flake** (output/host `toonix`) that recreates the user's
+**Omarchy v3.8.2** Hyprland desktop declaratively, to run in a **QEMU VM**.
 
-## Commands
-- **Install:** `bash vm/install-in-vm.sh` from the live NixOS installer VM, or follow `INSTALL.md`.
-- **Dev:** edit the flake and modules in this repo; use `just vm` or `vm/run-toonix-vm.sh` for VM testing.
-- **Build:** `just build`
-- **Test:** `just check`
-- **Lint:** `just fmt` and `git diff --check`
+**`CLAUDE.md` is the authority — read it first.** It documents the architecture
+(how the self-mutating Omarchy userland is shipped *writable* into `$HOME`), the
+`omarchy-*` commands that are deliberately stubbed on NixOS, and ~13 hard-won
+gotchas. Each gotcha exists because it already broke an eval once — check them
+before "fixing" something that looks odd.
 
-## Do
-- Read existing code before modifying anything.
-- Match existing patterns, naming, and style.
-- Handle errors gracefully; no silent failures.
-- Keep changes small and scoped to what was asked.
-- Run dev/build checks after changes when available.
-- Ask clarifying questions before guessing when the risk is high.
+## Non-negotiable invariants
 
-## Don't
-- Install new dependencies without asking.
-- Delete or overwrite files without confirming.
-- Hardcode secrets, API keys, or credentials.
-- Rewrite working code unless explicitly asked.
-- Push, deploy, or force-push without permission.
-- Make changes outside the scope of the request.
+- **Omarchy v3.8.2** (`.conf`-based). Never pull `main`/v4.x (Lua, different layout).
+- **Target = QEMU VM.** NVIDIA is an opt-in commented block; enabling it black-screens the VM.
+- **Active theme = `ristretto`** (seed in `user-configs/omarchy-current/`).
+- **Boot = GRUB/UEFI · root = btrfs subvolumes · swap = zram** (see `configuration.nix`).
 
-## When Stuck
-- If a task is large, break it into steps and confirm the plan first.
-- If you cannot fix an error in 2 attempts, stop and explain the issue.
+## Validate (no full build needed to catch config errors)
 
-## Testing
-- Run existing tests after any change when the tools are available.
-- Add focused tests or CI coverage for new behavior when practical.
-- Never skip or delete tests to make things pass.
+- `nix flake check --no-build` — evaluates the whole system closure; catches
+  option/attribute/type errors. **This is the fast correctness gate.**
+- `nix flake check` — also builds the closure. `nix fmt` formats (RFC 166).
+- `just` — lists VM/build/switch helpers. Full boot test = install into the
+  QEMU VM (`vm/README.md`, `INSTALL.md`).
 
-## Git
-- Small, focused commits with descriptive messages.
-- Never force push.
+## Working here
 
-## Response Style
-- Always respond with clear and concise messages.
-- Use plain English when explaining to the user.
-- Avoid long sentences, complex words, or long paragraphs.
+- Match existing style; keep changes scoped to what was asked.
+- The bundled `omarchy/` tree is **vendored upstream** (read-only source) — its
+  own conventions live in `omarchy/AGENTS.md`; don't add Toonix notes there.
