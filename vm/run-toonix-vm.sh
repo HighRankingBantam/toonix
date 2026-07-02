@@ -106,6 +106,11 @@ COMMON_ARGS=(
   -netdev user,id=net0
   -device virtio-net-pci,netdev=net0
   -virtfs "local,path=$REPO,mount_tag=toonixflake,security_model=none,id=toonixflake"
+  # Sound card so PipeWire gets a real sink/source (volume keys, OSD, wiremix,
+  # mic-mute all need one; without it pactl only sees auto_null).
+  -audiodev "none,id=snd0"
+  -device intel-hda
+  -device "hda-duplex,audiodev=snd0"
 )
 
 if [ "$HEADLESS" = "1" ]; then

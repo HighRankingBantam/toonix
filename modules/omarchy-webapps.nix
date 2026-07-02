@@ -11,8 +11,11 @@ let
   iconDir = "${config.home.homeDirectory}/.local/share/applications/icons";
 
   # name → url → icon-file (mirrors install/packaging/webapps.sh).
+  # HEY and Zoom get protocol-handler Execs + MimeTypes below (upstream
+  # registers omarchy-webapp-handler-{hey,zoom} for mailto:/zoommtg:/zoomus:).
   webapps = [
-    { n = "HEY";             u = "https://app.hey.com";                              i = "HEY.png"; }
+    { n = "HEY";             u = "https://app.hey.com";                              i = "HEY.png";
+      x = "omarchy-webapp-handler-hey %u";  m = [ "x-scheme-handler/mailto" ]; }
     { n = "Basecamp";        u = "https://launchpad.37signals.com";                  i = "Basecamp.png"; }
     { n = "WhatsApp";        u = "https://web.whatsapp.com/";                        i = "WhatsApp.png"; }
     { n = "Google Photos";   u = "https://photos.google.com/";                       i = "Google Photos.png"; }
@@ -25,23 +28,25 @@ let
     { n = "X";               u = "https://x.com/";                                   i = "X.png"; }
     { n = "Figma";           u = "https://figma.com/";                               i = "Figma.png"; }
     { n = "Discord";         u = "https://discord.com/channels/@me";                 i = "Discord.png"; }
-    { n = "Zoom";            u = "https://app.zoom.us/wc/home";                       i = "Zoom.png"; }
+    { n = "Zoom";            u = "https://app.zoom.us/wc/home";                       i = "Zoom.png";
+      x = "omarchy-webapp-handler-zoom %u";
+      m = [ "x-scheme-handler/zoommtg" "x-scheme-handler/zoomus" ]; }
     { n = "Fizzy";           u = "https://app.fizzy.do/";                            i = "Fizzy.png"; }
   ];
 in
 {
   xdg.desktopEntries =
     # Web apps
-    (lib.listToAttrs (map (a: lib.nameValuePair a.n {
+    (lib.listToAttrs (map (a: lib.nameValuePair a.n ({
       name = a.n;
       comment = a.n;
       genericName = "Web App";
-      exec = "omarchy-launch-webapp ${a.u}";
+      exec = a.x or "omarchy-launch-webapp ${a.u}";
       icon = "${iconDir}/${a.i}";
       terminal = false;
       startupNotify = true;
       categories = [ "Network" ];
-    }) webapps))
+    } // lib.optionalAttrs (a ? m) { mimeType = a.m; })) webapps))
     # TUI launchers (install/packaging/tuis.sh) — open in a floating/tiled
     # terminal via xdg-terminal-exec with the TUI.float/TUI.tile window classes
     # that Omarchy's hypr window rules target.
@@ -66,4 +71,15 @@ in
         categories = [ "Development" ];
       };
     };
+
+  # Zoom protocol links resolve to the Zoom webapp handler. NOTE: upstream's
+  # mimetypes.sh also points x-scheme-handler/mailto at HEY.desktop; this port
+  # deliberately keeps mailto → floorp.desktop (omarchy-browsers.nix) because
+  # the user's primary mail flow is browser-based, not HEY. HEY.desktop still
+  # advertises the mailto MimeType, so it's one menu click away in any
+  # "open with" chooser.
+  xdg.mimeApps.defaultApplications = {
+    "x-scheme-handler/zoommtg" = "Zoom.desktop";
+    "x-scheme-handler/zoomus"  = "Zoom.desktop";
+  };
 }

@@ -9,7 +9,7 @@
 # `chromium.desktop`), so we ship a `chromium.desktop` that launches Thorium —
 # that makes web apps (SUPER+SHIFT+A/Y/…) and the browser bindings resolve to
 # Thorium with no script patching.
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   # Thorium isn't in nixpkgs → fetch the official AppImage. version + both hashes
@@ -34,13 +34,29 @@ let
     hash = thoriumHashes.${cpuVariant};
   };
 
-  thorium = pkgs.appimageTools.wrapType2 {
-    pname = "thorium-browser";
+  thoriumAppImage = pkgs.appimageTools.wrapType2 {
+    pname = "thorium-browser-unwrapped";
     version = thoriumVersion;
     src = thoriumSrc;
     # Wayland/ozone runtime libs the Chromium AppImage may dlopen.
     extraPkgs = p: with p; [ libGL libxkbcommon ];
   };
+
+  # Chromium forks do NOT read a flags file natively — on Arch that's done by
+  # the distro launcher script. Recreate that here so thorium-flags.conf
+  # (ozone/Wayland + the Copy-URL extension below) actually takes effect.
+  # The wrapper keeps the `thorium-browser` name, so the .desktop Execs and
+  # omarchy-launch-webapp's first-token extraction keep working.
+  thorium = pkgs.writeShellScriptBin "thorium-browser" ''
+    flags=()
+    if [ -f "$HOME/.config/thorium/thorium-flags.conf" ]; then
+      while IFS= read -r line; do
+        case "$line" in ""|\#*) continue ;; esac
+        flags+=("$line")
+      done < "$HOME/.config/thorium/thorium-flags.conf"
+    fi
+    exec ${thoriumAppImage}/bin/thorium-browser-unwrapped "''${flags[@]}" "$@"
+  '';
 in
 {
   # Browser binaries (on PATH for the session). NOTE: with
@@ -113,4 +129,18 @@ in
     --gtk-version=4
     --load-extension=${config.home.homeDirectory}/.local/share/omarchy/default/chromium/extensions/copy-url
   '';
+
+  # Seed Omarchy's chromium profile defaults (dark color scheme) into Thorium's
+  # profile, only if the profile doesn't exist yet — the browser rewrites
+  # Preferences constantly, so this must never clobber a live profile.
+  home.activation.thoriumProfileSeed =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        prefs="$HOME/.config/thorium/Default/Preferences"
+        if [ ! -e "$prefs" ]; then
+          mkdir -p "$HOME/.config/thorium/Default"
+          install -m644 ${../omarchy/config/chromium/Default/Preferences} "$prefs"
+        fi
+      fi
+    '';
 }

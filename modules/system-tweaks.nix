@@ -28,6 +28,15 @@
     DefaultLimitNOFILE=65536:524288
     DefaultTimeoutStopSec=5s
   '';
+  # fast-shutdown.sh's other half: user@.service ships an EXPLICIT
+  # TimeoutStopSec=120s upstream, so the manager-level default above does NOT
+  # cover it — without this drop-in a lingering user session can still stall
+  # shutdown for 2 minutes. Mirrors omarchy/default/systemd/user@.service.d/
+  # faster-shutdown.conf.
+  systemd.services."user@" = {
+    overrideStrategy = "asDropin";
+    serviceConfig.TimeoutStopSec = "5s";
+  };
 
   # ── sudo: 10 password tries instead of 3 (increase-sudo-tries.sh) ───────────
   # timezones.sh — Omarchy lets the Waybar/menu timezone picker call
@@ -51,6 +60,11 @@
 
     # hardware/set-wireless-regdom.sh — America/Chicago resolves to US.
     options cfg80211 ieee80211_regdom=US
+
+    # hardware/fix-fkeys.sh — F-keys before media keys on Apple-like keyboards
+    # (hid_apple also drives many third-party boards, e.g. Lofree). Upstream
+    # applies it unconditionally; harmless when no such keyboard is attached.
+    options hid_apple fnmode=2
   '';
 
   # ── locate / updatedb (localdb.sh + plocate-ac-only.sh) ─────────────────────

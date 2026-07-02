@@ -1,6 +1,6 @@
 # Home-Manager entry point — wires up the Omarchy runtime + config tree
 # and applies the user's actual customizations.
-{ config, ... }:
+{ config, pkgs, ... }:
 
 {
   imports = [
@@ -14,10 +14,27 @@
   ];
 
   # SwayOSD volume/brightness overlay. Omarchy's media keybindings call
-  # `omarchy-swayosd-client`, which talks to this server. There is no NixOS
-  # `services.swayosd`, so we run the server via Home-Manager (the upstream
-  # user unit hardcodes /usr/bin/swayosd-server and won't work on NixOS).
-  services.swayosd.enable = true;
+  # `omarchy-swayosd-client`, which talks to this server. The upstream user
+  # unit hardcodes /usr/bin/swayosd-server, so we ship our own — but the unit
+  # name MUST stay `swayosd-server` (upstream's name): omarchy-restart-swayosd
+  # runs `systemctl --user enable --now swayosd-server.service` on every theme
+  # switch, and HM's `services.swayosd` names its unit `swayosd.service`
+  # (VM-verified: "Unit swayosd-server.service does not exist" → the OSD kept
+  # the old theme). Mirrors omarchy/config/systemd/user/swayosd-server.service.
+  systemd.user.services.swayosd-server = {
+    Unit = {
+      Description = "SwayOSD server";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
+      Restart = "always";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 
   home.username = "bantam";
   home.homeDirectory = "/home/bantam";

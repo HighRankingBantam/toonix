@@ -28,6 +28,13 @@ let
   userUwsm      = ../user-configs/uwsm;
   userWalker    = ../user-configs/walker;
   userAlacritty = ../user-configs/alacritty;
+  userOpencode  = ../user-configs/opencode;    # permission policy + share/autoupdate prefs
+  userTmux      = ../user-configs/tmux;        # user keybindings (M-Enter splits, ? popup)
+  userBtop      = ../user-configs/btop;        # proc_per_core / proc_follow_detailed
+  userAutostart = ../user-configs/autostart;   # 1password --silent (NixOS-pathed Exec)
+  userXdgTerms  = ../user-configs/xdg-terminals.list;  # Ghostty is the user's default terminal
+  userZen       = ../user-configs/omarchy-zen;         # zen-theme-map/zen-chrome (theme-set hook data)
+  userZenLib    = ../user-configs/catppuccin-zen;      # ~/.local/share/catppuccin-zen palette library
   userThemes    = ../user-configs/omarchy-themes;     # installed alt themes (~229M)
   userHooks     = ../user-configs/omarchy-hooks;       # theme-set hook etc.
   curTheme      = ../user-configs/omarchy-current;     # rendered ristretto seed
@@ -74,11 +81,26 @@ in
           "${userHypr}:hypr" \
           "${userUwsm}:uwsm" \
           "${userWalker}:walker" \
-          "${userAlacritty}:alacritty"; do
+          "${userAlacritty}:alacritty" \
+          "${userOpencode}:opencode" \
+          "${userTmux}:tmux" \
+          "${userBtop}:btop"; do
           src="''${pair%%:*}"; dst="''${pair##*:}"
           rm -rf "$cfg/$dst"
           cp -Rf "$src" "$cfg/$dst"
           makeWritable "$cfg/$dst"
+        done
+
+        # ── 2b. Single-file / merge overlays (don't clobber stock dirs) ────
+        # Ghostty first in the terminal preference order (user's live setup;
+        # bindings.conf launches via xdg-terminal-exec, so this picks the
+        # terminal SUPER+RETURN opens).
+        install -m644 "${userXdgTerms}" "$cfg/xdg-terminals.list"
+        # Merge the user's autostart entries into the stock autostart dir
+        # (replacing it wholesale would drop Omarchy's own entries).
+        mkdir -p "$cfg/autostart"
+        for f in "${userAutostart}"/*.desktop; do
+          [ -e "$f" ] && install -m644 "$f" "$cfg/autostart/$(basename "$f")"
         done
 
         # ── 3. ~/.config/omarchy runtime dir (themed/, extensions/, hooks/) ─
@@ -87,6 +109,10 @@ in
         # User's theme-set hook + post-boot hooks
         mkdir -p "$cfg/omarchy/hooks"
         cp -Rf "${userHooks}/." "$cfg/omarchy/hooks/" 2>/dev/null || true
+        # User's Zen Browser theming data (zen-theme-map.conf, zen-chrome/, …).
+        # Zen itself isn't packaged (user's primary is Floorp); the theme-set
+        # hook that consumes these degrades to a non-fatal "Hook failed" line.
+        cp -Rf "${userZen}/." "$cfg/omarchy/" 2>/dev/null || true
         # Branding (branding.sh): fastfetch sources branding/about.txt for its logo.
         mkdir -p "$cfg/omarchy/branding"
         cp -f "${omaRoot}/icon.txt" "$cfg/omarchy/branding/about.txt"      2>/dev/null || true
@@ -141,6 +167,15 @@ in
         for m in "${migrationsDir}"/*.sh; do
           [ -e "$m" ] && touch "$HOME/.local/state/omarchy/migrations/$(basename "$m")"
         done
+
+        # ── 7b. Zen palette library (~/.local/share/catppuccin-zen) ────────
+        # Data the user's theme-set hook feeds Zen Browser; seed once,
+        # writable (the hook's updater can git-pull/regenerate it).
+        if [ ! -d "$HOME/.local/share/catppuccin-zen" ]; then
+          mkdir -p "$HOME/.local/share"
+          cp -Rf "${userZenLib}" "$HOME/.local/share/catppuccin-zen"
+          makeWritable "$HOME/.local/share/catppuccin-zen"
+        fi
 
         # ── 8. Omarchy's custom Waybar glyph font ─────────────────────────
         mkdir -p "$HOME/.local/share/fonts"

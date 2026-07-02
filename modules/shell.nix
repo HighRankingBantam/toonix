@@ -21,6 +21,18 @@
         *":$HOME/.local/share/omarchy-nixos-overrides:"*) ;;
         *) export PATH="$HOME/.local/share/omarchy-nixos-overrides:$PATH" ;;
       esac
+
+      # ── User's own ~/.bashrc additions (captured from the live host) ──────
+      # Floorp recreates an empty ~/Floorp dir on every launch; clean it up.
+      rmdir ~/Floorp 2>/dev/null
+      # Doom Emacs (host install; harmless dead PATH entry when absent)
+      export PATH="$HOME/.config/emacs/bin:$PATH"
+      # pipx-installed CLIs
+      export PATH="$PATH:$HOME/.local/bin"
+      [[ -f "$HOME/.config/claw/env" ]] && . "$HOME/.config/claw/env"
+      [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path bash)"
+      # Short alias for Claude Code
+      alias cc='claude'
     '';
   };
 

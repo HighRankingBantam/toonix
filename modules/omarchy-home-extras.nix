@@ -146,6 +146,49 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
+  # ── Battery monitor + internal-monitor recovery ────────────────────────────
+  # Faithful ports of omarchy/config/systemd/user/* (first-run/battery-monitor.sh
+  # + recover-internal-monitor.sh). Both self-guard, so they're safe no-ops in
+  # the QEMU VM (no battery; no stale toggle) and functional on the Framework-16
+  # host: the battery service's script exits unless `omarchy-battery-present`,
+  # and the recovery unit only runs when the disable-toggle file exists.
+  systemd.user.services.omarchy-battery-monitor = {
+    Unit = {
+      Description = "Omarchy Battery Monitor Check";
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "%h/.local/share/omarchy/bin/omarchy-battery-monitor";
+      Environment = "DISPLAY=:0";
+      LogLevelMax = "warning";
+    };
+  };
+  systemd.user.timers.omarchy-battery-monitor = {
+    Unit = {
+      Description = "Omarchy Battery Monitor Timer";
+      Requires = [ "omarchy-battery-monitor.service" ];
+    };
+    Timer = {
+      OnBootSec = "1min";
+      OnUnitActiveSec = "30sec";
+      AccuracySec = "10sec";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+  systemd.user.services.omarchy-recover-internal-monitor = {
+    Unit = {
+      Description = "Recover the internal monitor toggle when no external display is connected";
+      Before = [ "graphical-session-pre.target" ];
+      ConditionPathExists = "%h/.local/state/omarchy/toggles/hypr/internal-monitor-disable.conf";
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "%h/.local/share/omarchy/bin/omarchy-hw-recover-internal-monitor";
+    };
+    Install.WantedBy = [ "graphical-session-pre.target" ];
+  };
+
   # ── Passwordless default keyring (login/default-keyring.sh) ────────────────
   # Preserve any user-created keyrings; only seed Omarchy's default if absent.
   home.activation.omarchyDefaultKeyring =
@@ -190,19 +233,50 @@ EOF
           "$HOME/.codex/skills" \
           "$HOME/.pi/agent/skills"
 
-        ln -sfn "$skill_src" "$HOME/.agents/skills/omarchy"
-        ln -sfn "$skill_src" "$HOME/.claude/skills/omarchy"
-        ln -sfn "$skill_src" "$HOME/.codex/skills/omarchy"
-        ln -sfn "$skill_src" "$HOME/.pi/agent/skills/omarchy"
+        # Replace stale/missing links, but never clobber a real dir the user
+        # put there (a non-symlink would also make `ln -sfn` fail and, under
+        # activation `set -e`, abort the whole home-manager activation).
+        for dest in \
+          "$HOME/.agents/skills/omarchy" \
+          "$HOME/.claude/skills/omarchy" \
+          "$HOME/.codex/skills/omarchy" \
+          "$HOME/.pi/agent/skills/omarchy"; do
+          if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+            echo "omarchyAISkill: $dest exists and is not a symlink; leaving it alone" >&2
+          else
+            ln -sfn "$skill_src" "$dest"
+          fi
+        done
       fi
     '';
 
   # ── ~/Work mise setup (mise-work.sh) ────────────────────────────────────────
-  # Adds ./bin to PATH for anything under ~/Work; `mise trust ~/Work` once.
-  home.file."Work/.mise.toml".text = ''
-    [env]
-    _.path = "{{ cwd }}/bin"
-  '';
+  # Upstream: write ~/Work/.mise.toml, create ~/Work/tries, `mise trust` the
+  # config. The toml is written as a real writable file (NOT a home.file store
+  # symlink) because mise records trust by the resolved path+hash — a symlink
+  # whose store target changes every rebuild would re-break trust each time.
+  home.activation.omarchyMiseWork =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        mkdir -p "$HOME/Work/tries"
+        if [ ! -e "$HOME/Work/.mise.toml" ]; then
+          printf '[env]\n_.path = "{{ cwd }}/bin"\n' > "$HOME/Work/.mise.toml"
+        fi
+        ${pkgs.mise}/bin/mise trust "$HOME/Work/.mise.toml" >/dev/null 2>&1 || true
+      fi
+    '';
+
+  # ── Power profile first-run default (first-run/battery-monitor.sh:7) ───────
+  # On a machine with no battery Omarchy sets the performance profile once.
+  # Self-guards: battery present (the FW16 host) or PPD not running → no-op.
+  home.activation.omarchyPowerProfile =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        if ! ls /sys/class/power_supply 2>/dev/null | grep -q "^BAT"; then
+          powerprofilesctl set performance >/dev/null 2>&1 || true
+        fi
+      fi
+    '';
 
   # ── Voxtype default config (install/first-run/install-voxtype.hook) ────────
   # Omarchy prompts users to install/download the dictation model after login.

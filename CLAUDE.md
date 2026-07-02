@@ -11,7 +11,8 @@ A NixOS flake (output `toonix`) that recreates the user's **Omarchy v3.8.2**
 Hyprland desktop on NixOS, to run in a **QEMU VM**. Goal: bring the user's
 existing config along so they don't reconfigure on install. Claude Code is
 preinstalled (original user request). Working dir of the broader session is
-`~/Projects`; this project lives at `~/Projects/nixos/` (NOT a git repo).
+`~/Projects`; this project lives at `~/Projects/nixos/` (a local git repo;
+GitHub push still pending `gh auth login`).
 
 ## Critical context (read before editing)
 
@@ -79,9 +80,10 @@ autostart + elephant menus (the in-launcher Theme/Background/Unlocks menus).
 **Bundled-tree coverage (verified):** all 28 `omarchy/default/` subdirs are
 wired, sourced via the runtime symlink, or skipped with reason. Justified skips
 (can't/shouldn't port): `limine` (GRUB instead), `pacman` (Arch N/A),
-`pi` (tool not in nixpkgs), `wayland-sessions`
-(withUWSM), `snapper/root` (NixOS generations handle system rollback). Don't
-re-investigate these as "missing" — they're deliberate.
+`pi` (tool not in nixpkgs), `wayland-sessions` (withUWSM). Don't
+re-investigate these as "missing" — they're deliberate. (`default/snapper/root`
+IS ported — `services.snapper.configs.root` in configuration.nix, NUMBER-based,
+limit 5 — though GRUB generations remain the primary system rollback.)
 
 ## Gotchas (hard-won — don't reintroduce)
 
@@ -139,8 +141,11 @@ re-investigate these as "missing" — they're deliberate.
 13. **No `permittedInsecurePackages` needed** — obsidian (1.12.7) pins
     `electron_40`, above the insecure cutoff. Don't add a stale electron string;
     if obsidian ever re-pins an EOL electron, the build error prints the exact
-    string to add. Also: `signal-desktop` (NOT `-bin`, which now throws),
-    `_1password-cli` (NOT `_1password`) — both already correct.
+    string to add. Also: `signal-desktop` (NOT `-bin`, which now throws). **1Password
+    is now via the NixOS modules** `programs._1password` + `programs._1password-gui`
+    (`polkitPolicyOwners = ["bantam"]`) — these add the setgid browser-integration
+    + polkit helpers a bare `_1password`/`_1password-cli` systemPackages entry would
+    miss. Do NOT revert to a plain package entry.
 
 ## Do NOT run on the VM (and why they're stubbed)
 
@@ -211,6 +216,46 @@ hardware-configuration.nix**, then
 `nixos-install --flake /mnt/etc/nixos#toonix`. Rebuild after edits:
 `sudo nixos-rebuild switch --flake /etc/nixos#toonix`. First boot: pick
 **"Hyprland (UWSM)"** in SDDM, log in `bantam` / `changeme`.
+
+## Coverage: finish-porting pass (2026-06-10)
+
+A full gap audit of `omarchy/install/{config,first-run,login,packaging,preflight,
+post-install}` + the `.packages` manifests against the Nix config found parity
+already very high. Gaps closed in this pass:
+
+- **SDDM autologin → Hyprland** (`login/sddm.sh`): `services.displayManager.autoLogin`
+  + `defaultSession = "hyprland-uwsm"`. Matches Omarchy's boot-to-desktop default.
+  If you want a greeter instead, drop the autoLogin block.
+- **Keyring PAM** (`login/{default-keyring,sddm}.sh`): `enableGnomeKeyring = false`
+  on the `login`/`sddm`/`sddm-autologin` PAM stacks, so NixOS doesn't spawn an
+  encrypted login keyring competing with Omarchy's seeded *passwordless* one.
+- **`sushi`** added (Nautilus spacebar preview) — the old "no nixpkgs equiv"
+  omit-comment was wrong (`pkgs.sushi` exists).
+- **`terminaltexteffects` (`tte`) added** — an earlier omit-comment claimed it
+  was installer-only ASCII art; WRONG: `omarchy-launch-screensaver` requires it
+  and hypridle triggers the screensaver after 2.5 min idle. It's a runtime
+  feature.
+- **Docker `DefaultDependencies=no`** (`docker.sh`) via `systemd.services.docker.unitConfig`.
+- **`omarchy-battery-monitor.{service,timer}` + `omarchy-recover-internal-monitor.service`**
+  ported as `systemd.user.*` in `omarchy-home-extras.nix` (faithful to
+  `omarchy/config/systemd/user/*`). Both self-guard → no-ops in the VM, live on
+  the Framework-16 host.
+
+Remaining **intentional** skips (do not re-flag as gaps):
+- `welcome.sh` first-login notify-send cheatsheet toast — cosmetic/transient.
+- `theme.sh` Yaru→Adwaita `go-previous/next` action-icon symlinks — cosmetic
+  (Nautilus toolbar arrows); the store-path/Yaru-scalable-actions path is
+  uncertain, not worth a build-time guess.
+- `increase-lockout-limit.sh` PAM **faillock** half — NixOS ships no faillock
+  module; `passwd_tries=10` (the sudo half) is ported. Looser-lockout intent is
+  moot on a single-user VM.
+- `packaging/nvim.sh` LazyVim bootstrap (ships with AUR `omarchy-nvim`) and
+  `packaging/npx.sh` mise-npx CLIs (codex/gemini/etc.) — user-installable; the
+  `omarchy-npx-install`/`omarchy-nvim-setup` paths exist. `neovim`/`opencode`
+  are packaged natively.
+- `battery-monitor` low-battery alert & `hibernation.sh` are correct VM skips but
+  become real gaps on bare-metal (the battery units above now cover the former;
+  hibernate needs a real (non-zram) swap + `boot.resumeDevice` on the host).
 
 ## Open / future work
 

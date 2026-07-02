@@ -78,6 +78,12 @@ in
     # installing nautilus-python isn't enough — Nautilus only scans dirs in its
     # own closure unless pointed at the loader's extension dir.
     NAUTILUS_4_EXTENSION_DIR = "${pkgs.nautilus-python}/lib/nautilus/extensions-4";
+    # NixOS doesn't link glib schemas into XDG_DATA_DIRS (VM-verified: bare
+    # `gsettings` says "No schemas installed" even in-session), but Omarchy's
+    # omarchy-theme-set-gnome calls it raw on every theme switch. Point glib
+    # straight at the compiled org.gnome.desktop.* schemas. (GTK apps are
+    # individually wrapped and unaffected; the write still lands in dconf.)
+    GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
   };
   # Ensure the virtio-gpu kernel module is present early for the framebuffer.
   boot.initrd.kernelModules = [ "virtio_gpu" ];
@@ -94,6 +100,13 @@ in
       allowedTCPPorts = [ 53317 ]; # LocalSend
       allowedUDPPorts = [ 53317 ];
       interfaces.docker0.allowedUDPPorts = [ 53 ];
+      # Omarchy's firewall.sh also allows DNS to the docker bridge IP from the
+      # whole private container space (user-defined `br-*` networks live in
+      # 172.16/12 and 192.168/16, not on docker0).
+      extraCommands = ''
+        iptables -A nixos-fw -p udp --dport 53 -d 172.17.0.1 -s 172.16.0.0/12 -j nixos-fw-accept
+        iptables -A nixos-fw -p udp --dport 53 -d 172.17.0.1 -s 192.168.0.0/16 -j nixos-fw-accept
+      '';
     };
   };
 
@@ -150,6 +163,16 @@ in
     enable = true;
     wayland.enable = true;
   };
+
+  # Autologin straight into Hyprland — matches Omarchy's default (login/sddm.sh
+  # writes an SDDM autologin drop-in; a single-user machine boots to the desktop
+  # with no greeter prompt). `defaultSession` doubles as the SDDM autologin
+  # session; withUWSM registers its entry as `hyprland-uwsm`.
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "bantam";
+  };
+  services.displayManager.defaultSession = "hyprland-uwsm";
 
   # withUWSM = true does everything we need:
   #   • implies programs.uwsm.enable
@@ -235,6 +258,17 @@ in
   services.gnome.gnome-keyring.enable = true;
   programs.seahorse.enable = true;
 
+  # Omarchy keeps a *passwordless* Default_keyring authoritative (seeded in
+  # omarchy-home-extras.nix) and its login/sddm.sh strips pam_gnome_keyring so a
+  # password/autologin can't create a competing *encrypted* login keyring that
+  # would defeat silent Secret-Service unlock (1Password, Signal, …). NixOS
+  # otherwise auto-adds pam_gnome_keyring to these stacks — turn it back off.
+  # mkForce: gnome-keyring.nix hard-sets login.enableGnomeKeyring = true
+  # (build-verified conflict), so a bare `false` fails evaluation.
+  security.pam.services.login.enableGnomeKeyring = lib.mkForce false;
+  security.pam.services.sddm.enableGnomeKeyring = lib.mkForce false;
+  security.pam.services.sddm-autologin.enableGnomeKeyring = lib.mkForce false;
+
   # Omarchy's default/hypr/autostart.conf line 6 starts the polkit agent via a
   # HARDCODED Arch path: /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
   # NixOS has no /usr/lib, so we materialize exactly that path as a symlink to
@@ -242,6 +276,12 @@ in
   # means we do NOT need our own systemd user service (one agent, no dupes).
   systemd.tmpfiles.rules = [
     "L+ /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 - - - - ${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
+    # ALL 282 omarchy bin scripts use `#!/bin/bash`, which NixOS does not ship
+    # (/bin has only `sh`). Anything that exec's them directly — Hyprland
+    # bindings (omarchy-menu), waybar custom modules, webapp launchers — fails
+    # with "bad interpreter" without this. (Build-verified: only invocations
+    # routed through an explicit `bash <script>` worked before this line.)
+    "L+ /bin/bash - - - - ${pkgs.bash}/bin/bash"
   ];
 
   # ── Misc services ────────────────────────────────────────────────────────
@@ -281,6 +321,10 @@ in
       bip = "172.17.0.1/16";
     };
   };
+  # Omarchy's docker.sh drops in `DefaultDependencies=no` so socket-activated
+  # Docker can't stall boot waiting on network-online.target.
+  systemd.services.docker.unitConfig.DefaultDependencies = false;
+
   programs.nm-applet.enable = true;
   programs.dconf.enable = true;
   programs.system-config-printer.enable = true;
@@ -296,20 +340,27 @@ in
     polkitPolicyOwners = [ "bantam" ];
   };
 
-  # Enable fcitx5 input method (Omarchy ships fcitx5 by default)
+  # Enable fcitx5 input method (Omarchy ships fcitx5 by default).
+  # fcitx5-gtk covers GTK apps; the two fcitx5-qt addons add the Qt5/Qt6 IM
+  # modules (without them Qt apps like kdenlive get no fcitx5 input).
   i18n.inputMethod = {
     enable = true;
     type = "fcitx5";
-    fcitx5.addons = with pkgs; [ fcitx5-gtk ];
+    fcitx5.addons = with pkgs; [
+      fcitx5-gtk
+      libsForQt5.fcitx5-qt
+      kdePackages.fcitx5-qt
+    ];
   };
 
   # ── System packages ──────────────────────────────────────────────────────
   # Sourced from omarchy/install/omarchy-base.packages, mapped to nixpkgs.
   # Omitted (AUR / Arch-only / no nixpkgs equivalent):
-  #   aether, asdcontrol, cliamp,
+  #   aether, asdcontrol, cliamp, expac (alpm query tool — its only consumers
+  #   are the stubbed omarchy-update-* scripts),
   #   kernel-modules-hook, omarchy-nvim, omarchy-walker,
-  #   python-poetry-core, python-terminaltexteffects,
-  #   sushi, tobi-try, ttf-ia-writer, yay, ufw-docker
+  #   tobi-try, ttf-ia-writer, yay, ufw-docker
+  #   (python-poetry-core is bundled by `poetry`.)
   environment.systemPackages = with pkgs; [
     # ★ Claude Code (user-requested)
     claude-code
@@ -388,6 +439,7 @@ in
     # Thorium replaces Chromium (both installed via home.packages there).
     nautilus
     nautilus-python          # loads Omarchy's right-click extensions (localsend/transcode)
+    sushi                    # Nautilus spacebar quick-preview (Omarchy base pkg: sushi)
     gvfs ffmpegthumbnailer webp-pixbuf-loader
     cups-filters
     xdg-user-dirs xdg-user-dirs-gtk
@@ -405,8 +457,30 @@ in
     signal-desktop
     spotify
     localsend
+    # nixpkgs localsend only ships `localsend_app`; Omarchy's scripts and the
+    # Nautilus extension call `localsend` (VM-verified: shutil.which fails).
+    (runCommand "localsend-compat" { } ''
+      mkdir -p $out/bin
+      ln -s ${localsend}/bin/localsend_app $out/bin/localsend
+    '')
 
     # Audit-driven additions (gap analysis of Omarchy config/script deps)
+    terminaltexteffects   # `tte` — omarchy-launch-screensaver render loop; hypridle
+                          # triggers it after 2.5 min idle, so the screensaver is a
+                          # RUNTIME feature (an earlier omit-comment claimed it was
+                          # installer-only ASCII art — wrong)
+    pulseaudio            # `pactl` only (PipeWire stays the server) — mic-mute key
+                          # (XF86AudioMicMute) + omarchy-audio-output-switch need it
+    glib                  # `gsettings` — omarchy-theme-set-gnome sets GTK/icon theme
+                          # on every theme switch
+    gsettings-desktop-schemas # the org.gnome.desktop.* schemas those gsettings
+                          # calls target (VM-verified: "No schemas installed"
+                          # without this)
+    xdg-utils             # xdg-settings/xdg-mime/xdg-open — omarchy-default-browser,
+                          # the bash `open()` alias, webapp handlers
+    hyprland-qtutils      # ANR/"not responding" dialogs (base pkg: hyprland-guiutils)
+    freerdp               # omarchy-windows-vm RDP client (xfreerdp)
+    netcat-openbsd        # omarchy-windows-vm port probe (base: openbsd-netcat)
     gtk3                  # gtk-launch, gtk-update-icon-cache (omarchy-menu)
     desktop-file-utils    # update-desktop-database (omarchy-refresh-applications)
     v4l-utils             # v4l2-ctl (screen-recording webcam enumeration)
@@ -423,6 +497,7 @@ in
 
     # Core CLI
     git wget curl
+    just                  # /etc/nixos ships a justfile (switch/test/build/check)
 
     # Boot splash
     plymouth

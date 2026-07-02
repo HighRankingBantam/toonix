@@ -84,6 +84,10 @@ let
     "omarchy-setup-dns"
     "omarchy-setup-security-fido2"
     "omarchy-setup-security-fingerprint"
+    # Writes /etc/sudoers.d/99-omarchy-nopasswd-* — NixOS's generated sudoers
+    # has no includedir, so the file would be silently ignored. Honest failure
+    # instead; the declarative knob is security.sudo.wheelNeedsPassword.
+    "omarchy-sudo-passwordless"
     "omarchy-toggle-hybrid-gpu"
     "omarchy-update"
     "omarchy-update-analyze-logs"
@@ -501,6 +505,9 @@ let
       text = ''
         #!/usr/bin/env bash
         set -euo pipefail
+        # Reap the `voxtype status --follow` child when waybar reloads/kills this
+        # module; without it each reload orphans a follower process (leak).
+        trap 'kill 0' EXIT
 
         if ! command -v voxtype >/dev/null 2>&1; then
           echo '{"alt": "", "tooltip": ""}'
