@@ -152,6 +152,7 @@ nixos/
 │   ├── omarchy-home.nix            # Activation: installs configs+state into $HOME as WRITABLE (mirrors installer)
 │   ├── omarchy-home-extras.nix     # Mimetypes, XDG user-dirs, .XCompose, WirePlumber drop-ins, ~/Work mise
 │   ├── omarchy-browsers.nix        # Floorp (→Firefox) + Thorium (→Chromium) + default-browser/webapp wiring
+│   ├── omarchy-webapps.nix         # Web apps + TUI launchers (ChatGPT/YouTube/… → Thorium --app; dust/lazydocker/btop)
 │   ├── omarchy-nixos-compat.nix    # Stubs Arch-only commands (omarchy update / refresh-* / pkg-*) so they no-op
 │   └── shell.nix                   # Bash sources Omarchy's bash framework; fzf integration; compat PATH-win
 │

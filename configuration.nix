@@ -1,5 +1,5 @@
 # NixOS system config — runs Omarchy v3.8.2 on top of nixpkgs.
-{ config, pkgs, lib, hyprland-preview-share-picker, ... }:
+{ pkgs, lib, hyprland-preview-share-picker, ... }:
 
 let
   hyprlandPreviewSharePicker =

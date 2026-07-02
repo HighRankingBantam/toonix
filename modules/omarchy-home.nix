@@ -19,7 +19,7 @@
 # (cheap, Omarchy-owned, static). Runtime state (current theme, user theme
 # library, toggle flags) is seeded only-if-absent so `nixos-rebuild` never
 # clobbers a theme you switched to inside the VM.
-{ config, pkgs, lib, ... }:
+{ pkgs, lib, ... }:
 
 let
   cfgSrc        = ../omarchy/config;          # stock per-app configs
