@@ -292,11 +292,19 @@ before to notice). Two other software-VM instabilities: `hyprctl dispatch
 forcerendererreload` crashes the session (don't use it), and layer surfaces from
 SIGKILL'd walker orphan until a session restart.
 
+**FIX VERIFIED (2026-07-02).** Booting with `virtio-gpu-gl-pci` +
+`-display egl-headless,gl=on,rendernode=/dev/dri/renderD128 -vnc …` (virgl,
+observable over VNC) took walker's GPU errors **23 → 0** and the **Omarchy menu
+renders** — Apps/Learn/Trigger/Style/… all paint. `vm/run-toonix-vm.sh` now does
+this by default (`GL=on`). **Caveat — use `./vm/run-toonix-vm.sh`, not `just vm`
+/ `nixos-rebuild build-vm`, for the accelerated path:** the build-vm runner uses
+the **nix-store QEMU**, which resolves GL drivers via `/run/opengl-driver`
+(NixOS-only) → `egl: gbm_create_device failed` on a non-NixOS host. The repo's
+`vm/run-toonix-vm.sh` uses the **host's** `qemu-system-x86_64` (Arch etc.), which
+finds GL in `/usr/lib` and works. `egl-headless` needs a host render node with
+working GBM (AMD `renderD128` is reliable; NVIDIA can be finicky).
+
 ## Open / future work
 
-- **Make the menu render in the VM:** switch `vm/run-toonix-vm.sh` (and the
-  build-vm path) to `virtio-gpu-gl` + `gl=on` (virgl) so walker/GTK4 clients get
-  GL. Needs host GL support + a real display (not headless VNC). This is the main
-  open item for the VM target; real installs are unaffected.
 - The 229 MB theme library bloats the flake closure; trim
   `user-configs/omarchy-themes/` if store size matters.
