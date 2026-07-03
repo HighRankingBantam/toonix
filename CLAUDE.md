@@ -261,11 +261,42 @@ Remaining **intentional** skips (do not re-flag as gaps):
   become real gaps on bare-metal (the battery units above now cover the former;
   hibernate needs a real (non-zram) swap + `boot.resumeDevice` on the host).
 
+## First boot test (2026-07-02)
+
+**Built + booted for the first time.** `nix flake check` passes and
+`nix build .#checks.x86_64-linux.toonix` realises the full **23.5 GiB** closure on
+`nixos-unstable` (pin `b5aa0fb`). Booted via `nixos-rebuild build-vm` into a
+headless QEMU guest over VNC (4 cores / 6 GB, plain `virtio-gpu`, no 3D accel).
+
+**Verified working live:** SDDM **autologin → Hyprland (UWSM)**, Waybar, wallpaper
+(swaybg), **notifications** (mako), **theme switching** (ristretto → monokai),
+**keybinds** (198 dispatchers loaded; SUPER+RETURN → Ghostty), **media keys**
+(swayosd-server + `swayosd-client`), **screen lock** (hyprlock), **idle** (hypridle
+DPMS-off + wake), terminal, and the **screensaver** (`org.omarchy.screensaver`
+window opens — needs the 6 GB VM; the build-vm default 1 GB was too small).
+
+**Known gap — GPU-accelerated GTK4 clients don't render in the software VM.**
+**walker** (the Omarchy **menu** *and* app launcher) fails to paint: every launch
+throws EGL/Vulkan init errors (`egl: failed to create dri2 screen`,
+`radv/amdgpu failed`, `vdrm_device_connect failed`) and commits a blank layer
+surface. The waybar menu button + tooltip work, but the menu comes up empty, and
+its sub-items (Apps/Learn/Trigger/…) that spawn fresh walker surfaces do the same.
+Root cause: a GTK4 *client* needs its own GL/EGL; a `gl=off` `virtio-gpu` provides
+none (Hyprland/Waybar/mako are fine — they use the *compositor's* software path).
+Forcing GTK4 software (`GSK_RENDERER=cairo` / `GDK_DISABLE=vulkan` /
+`LIBGL_ALWAYS_SOFTWARE=1`) did **not** rescue it. **Fix = enable virgl 3D accel**
+on the QEMU side (`virtio-gpu-gl` + `-display …,gl=on`) — note
+`vm/run-toonix-vm.sh` currently uses `gl=off`, so this bites `just vm` too. Real
+hardware / real GPU is unaffected (walker works there — this was never bootable
+before to notice). Two other software-VM instabilities: `hyprctl dispatch
+forcerendererreload` crashes the session (don't use it), and layer surfaces from
+SIGKILL'd walker orphan until a session restart.
+
 ## Open / future work
 
-- Has **not** been built or booted — first `nixos-rebuild`/install may surface
-  eval issues no local check could catch (esp. option renames on nixos-unstable).
-- If Hyprland won't start in QEMU, fix is enabling 3D accel on the QEMU side
-  (virtio-gpu-gl + virgl), not more Nix config. Don't rathole on this.
+- **Make the menu render in the VM:** switch `vm/run-toonix-vm.sh` (and the
+  build-vm path) to `virtio-gpu-gl` + `gl=on` (virgl) so walker/GTK4 clients get
+  GL. Needs host GL support + a real display (not headless VNC). This is the main
+  open item for the VM target; real installs are unaffected.
 - The 229 MB theme library bloats the flake closure; trim
   `user-configs/omarchy-themes/` if store size matters.
