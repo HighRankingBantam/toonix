@@ -1,5 +1,5 @@
 {
-  description = "NixOS VM running Omarchy v3.8.2";
+  description = "NixOS + Omarchy v3.8.2 — QEMU VM (toonix) + Intel baremetal (toonix-baremetal)";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -17,9 +17,10 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
-      nixosConfigurations.toonix = nixpkgs.lib.nixosSystem {
+
+      # Shared base (the Omarchy port + hardware template + Home-Manager); each
+      # host layers its own graphics/guest module on top via extraModules.
+      mkToonix = extraModules: nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
           inherit hyprland-preview-share-picker;
@@ -34,14 +35,25 @@
             home-manager.backupFileExtension = "hm-bak";
             home-manager.users.bantam = import ./home.nix;
           }
-        ];
+        ] ++ extraModules;
+      };
+    in
+    {
+      nixosConfigurations = {
+        # QEMU/KVM guest (virtio-gpu, software rendering) — the default target.
+        toonix = mkToonix [ ];
+        # Real Intel-graphics laptop — strips the VM tuning, adds Intel VAAPI so
+        # GTK4 clients (walker → the Omarchy menu/launcher) render on real GPU.
+        toonix-baremetal = mkToonix [ ./modules/baremetal-intel.nix ];
       };
 
-      # `nix flake check` builds the full system closure — i.e. a real
-      # eval+build of the whole config (the validation I can't run in this
-      # authoring environment; run it in CI or on any machine with Nix).
-      checks.${system}.toonix =
-        self.nixosConfigurations.toonix.config.system.build.toplevel;
+      # `nix flake check` builds each full system closure — the validation that
+      # can't run in an authoring environment. Run in CI or on any machine with Nix.
+      checks.${system} = {
+        toonix = self.nixosConfigurations.toonix.config.system.build.toplevel;
+        toonix-baremetal =
+          self.nixosConfigurations.toonix-baremetal.config.system.build.toplevel;
+      };
 
       # `nix fmt` formats all .nix files (RFC 166 style).
       formatter.${system} = pkgs.nixfmt;
