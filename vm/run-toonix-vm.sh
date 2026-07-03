@@ -36,6 +36,7 @@ DISK_SIZE="${DISK_SIZE:-40G}"
 ISO_URL="${ISO_URL:-https://channels.nixos.org/nixos-unstable/latest-nixos-minimal-x86_64-linux.iso}"
 BOOT="${BOOT:-installer}"
 HEADLESS="${HEADLESS:-0}"
+GL="${GL:-on}"          # virgl 3D accel for GTK4 clients (walker → menu/launcher); GL=off disables
 
 if [ -z "${ACCEL:-}" ]; then
   if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
@@ -115,8 +116,15 @@ COMMON_ARGS=(
 
 if [ "$HEADLESS" = "1" ]; then
   DISPLAY_ARGS=(-display none -serial mon:stdio)
-else
+elif [ "$GL" = "off" ]; then
   DISPLAY_ARGS=(-device virtio-gpu-pci -display gtk,gl=off)
+else
+  # virtio-gpu WITH virgl 3D accel so GTK4 clients render. Without it (gl=off)
+  # walker — the Omarchy menu + app launcher — fails EGL/Vulkan init and paints a
+  # blank surface (verified 2026-07-02; see CLAUDE.md "First boot test"). Hyprland/
+  # Waybar/mako are unaffected (compositor software path). Needs host GL + mesa
+  # virgl; run with GL=off to fall back if your host can't provide GL.
+  DISPLAY_ARGS=(-device virtio-gpu-gl-pci -display gtk,gl=on)
 fi
 
 if [ "$BOOT" = "disk" ]; then

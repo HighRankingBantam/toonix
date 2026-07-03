@@ -22,6 +22,7 @@ then boots QEMU (UEFI). Tunables:
 ```sh
 RAM=8192 CPUS=4 DISK_SIZE=40G ./vm/run-toonix-vm.sh
 HEADLESS=1 ./vm/run-toonix-vm.sh       # serial installer in this terminal
+GL=off ./vm/run-toonix-vm.sh           # disable virgl 3D accel (default on; the Omarchy menu/launcher needs it — GL=off leaves it blank)
 BOOT=disk ./vm/run-toonix-vm.sh        # boot the installed disk, no ISO
 ```
 
